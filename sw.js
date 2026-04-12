@@ -1,1 +1,15 @@
-{"name":"QQQ Put Algo","short_name":"QQQ Algo","description":"QQQ Short Put Trading Algorithm","start_url":"/index.html","display":"standalone","background_color":"#1a1a2e","theme_color":"#1a1a2e","orientation":"portrait-primary","icons":[{"src":"icons/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},{"src":"icons/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}]}
+const CACHE = 'qqq-v4';
+const ASSETS = [
+  '/putoption/index.html',
+  '/putoption/manifest.json',
+  '/putoption/icons/icon-192.png',
+  '/putoption/icons/icon-512.png'
+];
+self.addEventListener('install', e => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
+  self.skipWaiting();
+});
+self.addEventListener('activate', e => { self.clients.claim(); });
+self.addEventListener('fetch', e => {
+  e.respondWith(caches.match(e.request).then(c => c || fetch(e.request)));
+});
