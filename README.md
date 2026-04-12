@@ -1,0 +1,2 @@
+# putoption
+sell QQQ puts
