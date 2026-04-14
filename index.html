@@ -353,12 +353,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <!-- TODAY'S NEWS — standalone prominent card -->
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;margin-top:4px">
     <div>
-      <div style="font-size:17px;font-weight:800;color:var(--text);letter-spacing:-.3px">Today's News</div>
-      <div style="font-size:11px;color:var(--text3);margin-top:1px">Market-moving events · <span id="news-today-count" style="color:var(--at)">loading...</span></div>
+      <p class="stitle" style="margin:0">Today's News <span style="font-size:9px;text-transform:none;letter-spacing:0;font-weight:400;color:var(--text3)">· <span id="news-today-count">loading...</span></span></p>
     </div>
-    <button onclick="fetchNews('today')" style="background:var(--gbg);border:1px solid rgba(34,201,138,.3);border-radius:var(--rs);padding:7px 13px;font-size:11px;font-weight:800;color:var(--gt);cursor:pointer">↻ Refresh</button>
+    <button onclick="fetchNews('today')" style="background:var(--gbg);border:1px solid rgba(34,201,138,.3);border-radius:var(--rs);padding:5px 11px;font-size:10px;font-weight:800;color:var(--gt);cursor:pointer">↻ Refresh</button>
   </div>
-  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:16px">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:12px">
     <div id="news-today-table" style="width:100%">
       <div style="padding:20px;text-align:center;color:var(--text3);font-size:13px"><span class="spin"></span> Scanning today's market news...</div>
     </div>
@@ -367,12 +366,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <!-- TOMORROW'S NEWS — standalone prominent card -->
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
     <div>
-      <div style="font-size:17px;font-weight:800;color:var(--text);letter-spacing:-.3px">Tomorrow's News</div>
-      <div style="font-size:11px;color:var(--text3);margin-top:1px">Upcoming events &amp; catalysts · <span id="news-tomorrow-count" style="color:var(--at)">loading...</span></div>
+      <p class="stitle" style="margin:0">Tomorrow's News <span style="font-size:9px;text-transform:none;letter-spacing:0;font-weight:400;color:var(--text3)">· <span id="news-tomorrow-count">loading...</span></span></p>
     </div>
-    <button onclick="fetchNews('tomorrow')" style="background:var(--bbg);border:1px solid rgba(79,163,247,.3);border-radius:var(--rs);padding:7px 13px;font-size:11px;font-weight:800;color:var(--bt);cursor:pointer">↻ Refresh</button>
+    <button onclick="fetchNews('tomorrow')" style="background:var(--bbg);border:1px solid rgba(79,163,247,.3);border-radius:var(--rs);padding:5px 11px;font-size:10px;font-weight:800;color:var(--bt);cursor:pointer">↻ Refresh</button>
   </div>
-  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:16px">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:12px">
     <div id="news-tomorrow-table" style="width:100%">
       <div style="padding:20px;text-align:center;color:var(--text3);font-size:13px"><span class="spin"></span> Scanning upcoming events...</div>
     </div>
@@ -478,49 +476,49 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       <!-- Action + Qty + Expiration -->
       <div class="og g3">
         <div class="ot-f"><div class="ot-lbl">Action</div>
-          <select class="ot-sel" id="rt-action" onchange="onRT()">
+          <select style="background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:5px 8px;font-size:13px;font-weight:600;width:100%;outline:none;font-family:inherit" id="rt-action" onchange="onRT()">
             <option value="sell_open">Sell to Open</option>
             <option value="buy_close">Buy to Close</option>
           </select>
         </div>
         <div class="ot-f"><div class="ot-lbl">Quantity</div>
-          <input class="ot-in" type="number" id="rt-qty" value="15" min="1" step="1" oninput="onRT()" onfocus="this.select()">
+          <input style="background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:5px 8px;font-size:13px;font-weight:600;width:100%;outline:none;font-family:inherit;-moz-appearance:textfield" type="number" id="rt-qty" value="15" min="1" step="1" oninput="onRT()" onfocus="this.select()">
         </div>
-        <div class="ot-f"><div class="ot-lbl">Expiration date</div>
-          <input class="ot-in" type="date" id="rt-exp" onchange="onRT()">
+        <div class="ot-f"><div class="ot-lbl">Expiration</div>
+          <input style="background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:5px 8px;font-size:13px;font-weight:600;width:100%;outline:none;font-family:inherit" type="date" id="rt-exp" onchange="onRT()">
         </div>
       </div>
 
       <!-- Strike + Type -->
       <div class="og g2">
         <div class="ot-f"><div class="ot-lbl">Strike ($)</div>
-          <input class="ot-in" type="number" id="rt-strike" placeholder="e.g. 600" step="1" oninput="onRT()" onfocus="this.select()">
+          <input style="background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:5px 8px;font-size:13px;font-weight:600;width:100%;outline:none;font-family:inherit;-moz-appearance:textfield" type="number" id="rt-strike" placeholder="e.g. 600" step="1" oninput="onRT()" onfocus="this.select()">
         </div>
         <div class="ot-f"><div class="ot-lbl">Option type</div>
-          <select class="ot-sel" id="rt-type" onchange="onRT()">
+          <select style="background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:5px 8px;font-size:13px;font-weight:600;width:100%;outline:none;font-family:inherit" id="rt-type" onchange="onRT()">
             <option value="put">Put</option>
             <option value="call">Call</option>
           </select>
         </div>
       </div>
 
-      <!-- Execution price + Date/Time -->
+      <!-- Execution price + Date -->
       <div class="og g2">
         <div class="ot-f"><div class="ot-lbl">Execution price ($/share)</div>
-          <input class="ot-in" type="number" id="rt-price" placeholder="e.g. 0.55" step="0.01" oninput="onRT()" onfocus="this.select()">
+          <input style="background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:5px 8px;font-size:13px;font-weight:600;width:100%;outline:none;font-family:inherit;-moz-appearance:textfield" type="number" id="rt-price" placeholder="e.g. 0.55" step="0.01" oninput="onRT()" onfocus="this.select()">
         </div>
         <div class="ot-f"><div class="ot-lbl">Execution date</div>
-          <input class="ot-in" type="date" id="rt-date">
+          <input style="background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:5px 8px;font-size:13px;font-weight:600;width:100%;outline:none;font-family:inherit" type="date" id="rt-date">
         </div>
       </div>
 
       <!-- Execution time + Broker -->
       <div class="og g2">
         <div class="ot-f"><div class="ot-lbl">Execution time (ET)</div>
-          <input class="ot-in" type="time" id="rt-time">
+          <input style="background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:5px 8px;font-size:13px;font-weight:600;width:100%;outline:none;font-family:inherit" type="time" id="rt-time">
         </div>
         <div class="ot-f"><div class="ot-lbl">Broker / Platform</div>
-          <select class="ot-sel" id="rt-broker">
+          <select style="background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:5px 8px;font-size:13px;font-weight:600;width:100%;outline:none;font-family:inherit" id="rt-broker">
             <option value="schwab">Schwab / TD</option>
             <option value="fidelity">Fidelity</option>
             <option value="etrade">E*Trade</option>
@@ -1434,7 +1432,7 @@ function renderOpenPositions(){
     tbody.innerHTML=`<tr><td colspan="11" style="text-align:center;padding:24px;color:var(--text3)">No open positions</td></tr>`;
     tfoot.innerHTML='';return;
   }
-  let totalVal=0,totalDayGain=0,totalGain=0,totalQty=0,cash=119784.20;
+  let totalVal=0,totalDayGain=0,totalGain=0,totalQty=0;
   tbody.innerHTML=openPos.map(pos=>{
     const spot=LD.qqq||pos.execPrice;
     const last=OQ.last||pos.execPrice*.8;
@@ -1461,10 +1459,7 @@ function renderOpenPositions(){
       <td>${value>=0?'':'−'}$${Math.abs(value).toFixed(2)}</td>
     </tr>`;
   }).join('');
-  const totalAll=totalVal+cash;
-  tfoot.innerHTML=`
-    <tr class="pos-footer"><td>Cash</td><td colspan="9" style="color:var(--blue-t);font-size:11px">Transfer money</td><td>$${cash.toLocaleString()}</td></tr>
-    <tr class="pos-footer"><td>Total</td><td></td><td></td><td></td><td></td><td style="font-weight:800">${totalQty}</td><td></td><td class="${totalDayGain>=0?'green':'red'}">${totalDayGain>=0?'+':''}$${totalDayGain.toFixed(2)}</td><td class="${totalGain>=0?'green':'red'}">${totalGain>=0?'+':''}$${totalGain.toFixed(2)}</td><td class="${totalGain>=0?'green':'red'}">${totalGain>=0?'+':''}${openPos.length?Math.round(totalGain/(openPos.reduce((s,p)=>s+p.execPrice*p.qty*100,0))*10000)/100:0}%</td><td style="font-weight:800">$${totalAll.toLocaleString()}</td></tr>`;
+  tfoot.innerHTML=``;
 }
 
 function renderClosedPositions(){
