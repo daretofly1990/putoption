@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#1a1a2e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<title>QQQ Put Stragegy</title>
+<title>QQQ Put Algo</title>
 <style>
 :root{--bg:#1a1a2e;--bg2:#22223a;--bg3:#2d2d48;--bg4:#383858;--border:rgba(255,255,255,0.18);--border2:rgba(255,255,255,0.30);--text:#ffffff;--text2:#d8d8ee;--text3:#a8a8c8;--green:#22c98a;--gbg:rgba(34,201,138,0.18);--gt:#4eedb0;--red:#ff5f5e;--rbg:rgba(255,95,94,0.18);--rt:#ff8888;--amber:#ffbe3d;--abg:rgba(255,190,61,0.18);--at:#ffd166;--blue:#4fa3f7;--bbg:rgba(79,163,247,0.18);--bt:#7ec0ff;--r:12px;--rs:8px}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -249,7 +249,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
           <span id="ext-price" style="font-size:11px;font-weight:800;color:var(--text2);font-variant-numeric:tabular-nums">—</span>
           <span id="ext-chg" style="font-size:10px;font-weight:700;font-variant-numeric:tabular-nums">—</span>
         </div>
-        <div id="upd-lbl">loading...</div>
+        <div id="clocks-block" style="margin-top:4px;text-align:right">
+          <div id="clock-et" style="font-size:10px;font-weight:700;color:var(--text2);font-variant-numeric:tabular-nums;white-space:nowrap">— ET</div>
+          <div id="clock-ct" style="font-size:9px;font-weight:600;color:var(--text3);font-variant-numeric:tabular-nums;white-space:nowrap">— CT</div>
+          <div id="clock-mt" style="font-size:9px;font-weight:600;color:var(--text3);font-variant-numeric:tabular-nums;white-space:nowrap">— MT</div>
+          <div id="clock-pt" style="font-size:9px;font-weight:600;color:var(--text3);font-variant-numeric:tabular-nums;white-space:nowrap">— PT</div>
+          <div id="delay-badge" style="margin-top:3px;display:inline-block;font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px;background:var(--abg);color:var(--at)">15-min delay</div>
+        </div>
       </div>
     </div>
   </div>
@@ -259,6 +265,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 <div id="tabs">
   <button class="tb active" onclick="showTab('signal',this)">Signal</button>
   <button class="tb" onclick="showTab('order',this)">Order</button>
+  <button class="tb" onclick="showTab('record',this)">Record Trade</button>
   <button class="tb" onclick="showTab('positions',this)">Positions</button>
   <button class="tb" onclick="showTab('gains',this)">Gains &amp; Losses</button>
   <button class="tb" onclick="showTab('entry',this)">Entry Rules</button>
@@ -329,22 +336,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         <div class="trend-block"><span class="trend-name">Price vs SMA 20</span><span class="trend-val" id="t-price-sma20">—</span><span class="trend-badge neut" id="t-price-sma20-b">—</span></div>
       </div>
     </div>
-    <!-- 4. Major news today -->
-    <div class="row" style="flex-direction:column;align-items:flex-start;gap:0;padding-bottom:10px">
-      <div style="display:flex;justify-content:space-between;width:100%;align-items:center;margin-bottom:8px">
-        <span class="rl">Major news today</span>
-        <button onclick="fetchNews('today')" style="background:none;border:1px solid var(--border2);border-radius:5px;padding:3px 8px;font-size:10px;color:var(--text3);cursor:pointer;font-weight:700">Refresh</button>
-      </div>
-      <div id="news-today" style="width:100%"><div class="news-loading"><span class="spin"></span>Scanning market news...</div></div>
-    </div>
-    <!-- 5. Major news tomorrow -->
-    <div class="row" style="flex-direction:column;align-items:flex-start;gap:0;padding-bottom:10px">
-      <div style="display:flex;justify-content:space-between;width:100%;align-items:center;margin-bottom:8px">
-        <span class="rl">Major news tomorrow</span>
-        <button onclick="fetchNews('tomorrow')" style="background:none;border:1px solid var(--border2);border-radius:5px;padding:3px 8px;font-size:10px;color:var(--text3);cursor:pointer;font-weight:700">Refresh</button>
-      </div>
-      <div id="news-tomorrow" style="width:100%"><div class="news-loading"><span class="spin"></span>Scanning upcoming events...</div></div>
-    </div>
+    <!-- 4. Major news today — inline entry, full card is below -->
+    <!-- 5. Major news tomorrow — inline entry, full card is below -->
     <!-- 6. Trend vs MA -->
     <div class="row">
       <span class="rl">QQQ vs 20-day MA</span>
@@ -357,6 +350,34 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
           <option value="down">Below 20MA ↓</option>
         </select>
       </div>
+    </div>
+  </div>
+
+  <!-- TODAY'S NEWS — standalone prominent card -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;margin-top:4px">
+    <div>
+      <div style="font-size:17px;font-weight:800;color:var(--text);letter-spacing:-.3px">Today's News</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:1px">Market-moving events · <span id="news-today-count" style="color:var(--at)">loading...</span></div>
+    </div>
+    <button onclick="fetchNews('today')" style="background:var(--gbg);border:1px solid rgba(34,201,138,.3);border-radius:var(--rs);padding:7px 13px;font-size:11px;font-weight:800;color:var(--gt);cursor:pointer">↻ Refresh</button>
+  </div>
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:16px">
+    <div id="news-today-table" style="width:100%">
+      <div style="padding:20px;text-align:center;color:var(--text3);font-size:13px"><span class="spin"></span> Scanning today's market news...</div>
+    </div>
+  </div>
+
+  <!-- TOMORROW'S NEWS — standalone prominent card -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+    <div>
+      <div style="font-size:17px;font-weight:800;color:var(--text);letter-spacing:-.3px">Tomorrow's News</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:1px">Upcoming events &amp; catalysts · <span id="news-tomorrow-count" style="color:var(--at)">loading...</span></div>
+    </div>
+    <button onclick="fetchNews('tomorrow')" style="background:var(--bbg);border:1px solid rgba(79,163,247,.3);border-radius:var(--rs);padding:7px 13px;font-size:11px;font-weight:800;color:var(--bt);cursor:pointer">↻ Refresh</button>
+  </div>
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:16px">
+    <div id="news-tomorrow-table" style="width:100%">
+      <div style="padding:20px;text-align:center;color:var(--text3);font-size:13px"><span class="spin"></span> Scanning upcoming events...</div>
     </div>
   </div>
 
@@ -439,6 +460,138 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       <div class="est-row" id="est-row">Enter strike and quantity above</div>
       <button class="place-btn btn-sell" id="place-btn" onclick="confirmOrd()" disabled>Review Order</button>
     </div>
+  </div>
+</div>
+
+<!-- ══ RECORD TRADE TAB ══ -->
+<div id="panel-record" class="panel">
+  <p class="stitle">Record executed trade</p>
+  <div style="background:var(--bbg);border:1px solid rgba(79,163,247,.3);border-radius:var(--r);padding:12px 14px;margin-bottom:14px;font-size:12px;color:var(--text2);line-height:1.6">
+    Enter the details of a trade you have <strong style="color:var(--bt)">already executed</strong> at your broker. The algorithm will monitor this position and recommend when to buy to close based on your trading rules and current market conditions.
+  </div>
+
+  <!-- RECORD FORM -->
+  <div class="ot">
+    <div class="ot-hdr">
+      <div class="ot-hdr-t">Trade Details</div>
+      <div class="ot-sym">QQQ</div>
+    </div>
+    <div class="ot-body">
+
+      <!-- Action + Qty + Expiration -->
+      <div class="og g3">
+        <div class="ot-f"><div class="ot-lbl">Action</div>
+          <select class="ot-sel" id="rt-action" onchange="onRT()">
+            <option value="sell_open">Sell to Open</option>
+            <option value="buy_close">Buy to Close</option>
+          </select>
+        </div>
+        <div class="ot-f"><div class="ot-lbl">Quantity</div>
+          <input class="ot-in" type="number" id="rt-qty" value="15" min="1" step="1" oninput="onRT()" onfocus="this.select()">
+        </div>
+        <div class="ot-f"><div class="ot-lbl">Expiration date</div>
+          <input class="ot-in" type="date" id="rt-exp" onchange="onRT()">
+        </div>
+      </div>
+
+      <!-- Strike + Type -->
+      <div class="og g2">
+        <div class="ot-f"><div class="ot-lbl">Strike ($)</div>
+          <input class="ot-in" type="number" id="rt-strike" placeholder="e.g. 600" step="1" oninput="onRT()" onfocus="this.select()">
+        </div>
+        <div class="ot-f"><div class="ot-lbl">Option type</div>
+          <select class="ot-sel" id="rt-type" onchange="onRT()">
+            <option value="put">Put</option>
+            <option value="call">Call</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Execution price + Date/Time -->
+      <div class="og g2">
+        <div class="ot-f"><div class="ot-lbl">Execution price ($/share)</div>
+          <input class="ot-in" type="number" id="rt-price" placeholder="e.g. 0.55" step="0.01" oninput="onRT()" onfocus="this.select()">
+        </div>
+        <div class="ot-f"><div class="ot-lbl">Execution date</div>
+          <input class="ot-in" type="date" id="rt-date">
+        </div>
+      </div>
+
+      <!-- Execution time + Broker -->
+      <div class="og g2">
+        <div class="ot-f"><div class="ot-lbl">Execution time (ET)</div>
+          <input class="ot-in" type="time" id="rt-time">
+        </div>
+        <div class="ot-f"><div class="ot-lbl">Broker / Platform</div>
+          <select class="ot-sel" id="rt-broker">
+            <option value="schwab">Schwab / TD</option>
+            <option value="fidelity">Fidelity</option>
+            <option value="etrade">E*Trade</option>
+            <option value="ibkr">IBKR</option>
+            <option value="robinhood">Robinhood</option>
+            <option value="tastytrade">Tastytrade</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div class="ot-f" style="margin-bottom:14px">
+        <div class="ot-lbl" style="margin-bottom:5px">Notes (optional)</div>
+        <textarea id="rt-notes" placeholder="e.g. Opened as roll from yesterday's position, unusual market conditions..." style="width:100%;background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:10px 11px;font-size:13px;font-family:inherit;resize:vertical;min-height:56px;outline:none;line-height:1.5"></textarea>
+      </div>
+
+      <!-- Summary row -->
+      <div id="rt-summary" style="display:none;background:var(--bg3);border-radius:var(--rs);padding:12px 14px;margin-bottom:14px">
+        <div style="font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Trade summary</div>
+        <div id="rt-summary-body" style="font-size:13px;color:var(--text2);line-height:1.7"></div>
+      </div>
+
+      <button class="place-btn" id="rt-btn" onclick="recordTrade()" disabled style="background:var(--blue);color:#fff">
+        Record This Trade
+      </button>
+    </div>
+  </div>
+
+  <!-- RECOMMENDATION ENGINE — shown after recording -->
+  <div id="rt-rec-wrap" style="display:none">
+    <div style="font-size:17px;font-weight:800;color:var(--text);margin-bottom:4px;margin-top:4px">BTC Recommendation</div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:12px">Based on your trading rules and current market conditions</div>
+
+    <!-- Position status card -->
+    <div id="rt-status-card" class="sig sig-g" style="margin-bottom:12px">
+      <div class="sig-lbl"><span id="rt-status-lbl">Analyzing...</span></div>
+      <div class="sig-title" id="rt-rec-title">Loading recommendation...</div>
+      <div class="sig-desc" id="rt-rec-desc"></div>
+      <div class="sig-rec" id="rt-rec-detail" style="display:none">
+        <div class="sig-rec-lbl">Rule basis</div>
+        <div class="sig-rec-body" id="rt-rec-rule"></div>
+      </div>
+    </div>
+
+    <!-- Live metrics for the recorded position -->
+    <div class="card" id="rt-live-metrics">
+      <div class="stitle" style="margin-bottom:10px">Live position metrics</div>
+      <div class="row"><span class="rl">Symbol</span><span class="rv" id="rm-symbol">—</span></div>
+      <div class="row"><span class="rl">QQQ current</span><span class="rv" id="rm-qqq">—</span></div>
+      <div class="row"><span class="rl">Points OTM</span><span class="rv" id="rm-otm">—</span></div>
+      <div class="row"><span class="rl">Sold at</span><span class="rv" id="rm-sold">—</span></div>
+      <div class="row"><span class="rl">Est. current value</span><span class="rv" id="rm-cur">—</span></div>
+      <div class="row"><span class="rl">Decay captured</span><span class="rv" id="rm-decay">—</span></div>
+      <div class="row"><span class="rl">Est. unrealized P&amp;L</span><span class="rv" id="rm-pnl">—</span></div>
+      <div class="row"><span class="rl">2× stop trigger</span><span class="rv amber" id="rm-stop">—</span></div>
+      <div class="row"><span class="rl">15% profit target</span><span class="rv green" id="rm-target">—</span></div>
+      <div class="row"><span class="rl">Expires</span><span class="rv" id="rm-exp">—</span></div>
+    </div>
+
+    <!-- Action buttons -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px" id="rt-action-btns" style="display:none">
+      <button onclick="rtBTC()" style="padding:13px;background:var(--red);color:#fff;border:none;border-radius:var(--r);font-size:13px;font-weight:800;cursor:pointer">Record BTC</button>
+      <button onclick="rtClear()" style="padding:13px;background:var(--bg4);color:var(--text2);border:1px solid var(--border2);border-radius:var(--r);font-size:13px;font-weight:700;cursor:pointer">Clear Position</button>
+    </div>
+
+    <!-- Refresh recommendation -->
+    <button onclick="updateRTRec()" style="width:100%;padding:10px;background:none;color:var(--text3);border:1px solid var(--border2);border-radius:var(--r);font-size:12px;font-weight:700;cursor:pointer;margin-bottom:4px">↻ Refresh recommendation</button>
   </div>
 </div>
 
@@ -649,17 +802,36 @@ function showTab(id,btn){
   if(id==='positions')renderPositions();
   if(id==='gains')renderGL();
   if(id==='order')renderSug();
+  if(id==='record')initRecordTab();
 }
 
 // ══════════════════════════════════════════
 // MARKET STATUS
 // ══════════════════════════════════════════
 function updateMktStatus(){
-  const et=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
+  const now=new Date();
+  // ET
+  const et=new Date(now.toLocaleString('en-US',{timeZone:'America/New_York'}));
   const h=et.getHours(),m=et.getMinutes(),s=et.getSeconds(),d=et.getDay();
   const mins=h*60+m;
+  const fmt=(tz)=>{
+    const d2=new Date(now.toLocaleString('en-US',{timeZone:tz}));
+    const hh=d2.getHours(),mm=d2.getMinutes(),ss=d2.getSeconds();
+    return `${hh%12||12}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')} ${hh>=12?'PM':'AM'}`;
+  };
+  // Update all timezone clocks
+  const etEl=document.getElementById('clock-et');
+  const ctEl=document.getElementById('clock-ct');
+  const mtEl=document.getElementById('clock-mt');
+  const ptEl=document.getElementById('clock-pt');
+  if(etEl) etEl.textContent=fmt('America/New_York')+' ET';
+  if(ctEl) ctEl.textContent=fmt('America/Chicago')+' CT';
+  if(mtEl) mtEl.textContent=fmt('America/Denver')+' MT';
+  if(ptEl) ptEl.textContent=fmt('America/Los_Angeles')+' PT';
+  // Market status dot + label
   const dot=document.getElementById('mkt-dot'),lbl=document.getElementById('mkt-lbl');
-  const ts=`${h%12||12}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')} ${h>=12?'PM':'AM'} ET`;
+  if(!dot||!lbl)return;
+  const ts=fmt('America/New_York')+' ET';
   if(d===0||d===6){dot.className='dot dc';lbl.textContent='Market Closed (Weekend)';}
   else if(mins>=570&&mins<960){dot.className='dot dl';lbl.textContent='Market Open · '+ts;}
   else if((mins>=480&&mins<570)||(mins>=960&&mins<1200)){dot.className='dot dp';lbl.textContent=(mins<570?'Pre':'After')+'-Market · '+ts;}
@@ -733,7 +905,7 @@ async function fetchLD(){
 }
 
 function applyLD(){
-  const{qqq,bid,ask,vix,ma20,chg,pmChg,extPrice,extChg,extLabel,isExt,asOf}=LD;
+  const{qqq,bid,ask,vix,ma20,chg,pmChg,extPrice,extChg,extLabel,isExt}=LD;
   // Header regular session price
   document.getElementById('qqq-price').textContent='$'+qqq.toFixed(2);
   const ce=document.getElementById('price-chg');
@@ -741,8 +913,18 @@ function applyLD(){
   ce.style.color=chg>=0?'var(--gt)':'var(--rt)';
   document.getElementById('hdr-bid').textContent=bid.toFixed(2);
   document.getElementById('hdr-ask').textContent=ask.toFixed(2);
-  document.getElementById('upd-lbl').textContent='Updated '+asOf;
-
+  // Delay badge — Yahoo Finance free tier is ~15min delayed during market hours
+  const db=document.getElementById('delay-badge');
+  if(db){
+    const et=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
+    const mins=et.getHours()*60+et.getMinutes(),d=et.getDay();
+    const isOpen=d>=1&&d<=5&&mins>=570&&mins<960;
+    if(isOpen){
+      db.textContent='~15-min delay';db.style.background='var(--abg)';db.style.color='var(--at)';
+    } else {
+      db.textContent='Real-time (closed)';db.style.background='var(--gbg)';db.style.color='var(--gt)';
+    }
+  }
   // Extended hours row
   const extRow=document.getElementById('ext-hours-row');
   if(isExt&&extPrice){
@@ -853,7 +1035,7 @@ function streamTick(){
     const er=document.getElementById('ext-hours-row');
     if(er)er.style.display='flex';
   }
-  document.getElementById('upd-lbl').textContent=new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',second:'2-digit'});
+  document.getElementById('clock-et').textContent=new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',second:'2-digit',timeZone:'America/New_York'})+' ET';
   simOQ();renderPosAlert();
 }
 
@@ -916,16 +1098,16 @@ function catShort(cat){
 }
 
 async function fetchNews(which){
-  const el=document.getElementById('news-'+which);
-  el.innerHTML='<div class="news-loading"><span class="spin"></span>Scanning '+(which==='today'?'today\'s':'tomorrow\'s')+' market news...</div>';
+  const tableEl=document.getElementById('news-'+which+'-table');
+  const countEl=document.getElementById('news-'+which+'-count');
+  if(tableEl) tableEl.innerHTML='<div style="padding:20px;text-align:center;color:var(--text3);font-size:13px"><span class="spin"></span> Scanning '+(which==='today'?'today\'s':'tomorrow\'s')+' market news...</div>';
+  if(countEl) countEl.textContent='loading...';
   try{
-    // Use multiple free RSS feeds via allorigins proxy, then parse + filter
     const feeds=[
       'https://feeds.finance.yahoo.com/rss/2.0/headline?s=QQQ&region=US&lang=en-US',
       'https://feeds.marketwatch.com/marketwatch/topstories/',
       'https://feeds.reuters.com/reuters/businessNews',
     ];
-    // Use first feed that works
     let items=[];
     for(const feed of feeds){
       try{
@@ -934,25 +1116,27 @@ async function fetchNews(which){
         const json=await r.json();
         const parser=new DOMParser();
         const doc=parser.parseFromString(json.contents,'text/xml');
-        const rssItems=Array.from(doc.querySelectorAll('item')).slice(0,15);
+        const rssItems=Array.from(doc.querySelectorAll('item')).slice(0,20);
         if(rssItems.length>0){
           items=rssItems.map(item=>{
             const title=item.querySelector('title')?.textContent||'';
             const pubDate=item.querySelector('pubDate')?.textContent||'';
-            const desc=item.querySelector('description')?.textContent?.replace(/<[^>]*>/g,'')||'';
+            const desc=(item.querySelector('description')?.textContent||'').replace(/<[^>]*>/g,'');
             const dateObj=pubDate?new Date(pubDate):new Date();
             const timeStr=dateObj.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:'America/New_York'})+' ET';
-            // Categorize
             const txt=(title+' '+desc).toLowerCase();
             let category='Market',impact='MEDIUM';
-            if(txt.includes('fed')||txt.includes('rate')||txt.includes('yield')||txt.includes('treasury')||txt.includes('fomc')){category='Interest Rates/Bonds';impact='HIGH';}
-            else if(txt.includes('cpi')||txt.includes('inflation')||txt.includes('gdp')||txt.includes('jobs')||txt.includes('unemployment')||txt.includes('pmi')){category='Economic Data';impact='HIGH';}
-            else if(txt.includes('nvidia')||txt.includes('apple')||txt.includes('microsoft')||txt.includes('amazon')||txt.includes('meta')||txt.includes('google')||txt.includes('tesla')||txt.includes('earnings')||txt.includes('guidance')){category='Earnings/QQQ';impact='HIGH';}
-            else if(txt.includes('tariff')||txt.includes('sanction')||txt.includes('war')||txt.includes('china')||txt.includes('russia')||txt.includes('iran')||txt.includes('geopolit')){category='Geopolitical';impact='HIGH';}
-            else if(txt.includes('oil')||txt.includes('gold')||txt.includes('copper')||txt.includes('commodity')||txt.includes('natural gas')){category='Commodities';impact='MEDIUM';}
-            else if(txt.includes('ai ')||txt.includes('artificial intelligence')||txt.includes('semiconductor')||txt.includes('chip')){category='Tech/AI';impact='MEDIUM';}
-            else if(txt.includes('vix')||txt.includes('sentiment')||txt.includes('fund flow')||txt.includes('retail investor')){category='Sentiment';impact='LOW';}
-            else if(txt.includes('congress')||txt.includes('fiscal')||txt.includes('budget')||txt.includes('spending')){category='Fiscal Policy';impact='MEDIUM';}
+            if(txt.includes('fed')||txt.includes('fomc')||txt.includes('yield')||txt.includes('treasury')||txt.includes('interest rate')){category='Rates/Bonds';impact='HIGH';}
+            else if(txt.includes('cpi')||txt.includes('inflation')||txt.includes('gdp')||txt.includes('jobs')||txt.includes('nonfarm')||txt.includes('unemployment')||txt.includes('pmi')){category='Economic Data';impact='HIGH';}
+            else if(txt.includes('nvidia')||txt.includes('nvda')||txt.includes('apple')||txt.includes('aapl')||txt.includes('microsoft')||txt.includes('msft')||txt.includes('amazon')||txt.includes('amzn')||txt.includes('meta')||txt.includes('google')||txt.includes('alphabet')||txt.includes('tesla')||txt.includes('tsla')||txt.includes('earnings')||txt.includes('guidance')||txt.includes('revenue')){category='Earnings/QQQ';impact='HIGH';}
+            else if(txt.includes('tariff')||txt.includes('sanction')||txt.includes('ukraine')||txt.includes('china')||txt.includes('taiwan')||txt.includes('russia')||txt.includes('iran')||txt.includes('war')||txt.includes('geopolit')){category='Geopolitical';impact='HIGH';}
+            else if(txt.includes('oil')||txt.includes('crude')||txt.includes('gold')||txt.includes('copper')||txt.includes('commodity')||txt.includes('natural gas')){category='Commodities';impact='MEDIUM';}
+            else if(txt.includes('ai ')||txt.includes('artificial intel')||txt.includes('semiconductor')||txt.includes('chip')||txt.includes('quantum')){category='Tech/AI';impact='MEDIUM';}
+            else if(txt.includes('vix')||txt.includes('sentiment')||txt.includes('put/call')){category='Sentiment';impact='LOW';}
+            else if(txt.includes('congress')||txt.includes('senate')||txt.includes('fiscal')||txt.includes('budget')||txt.includes('spending')||txt.includes('debt ceiling')){category='Fiscal Policy';impact='HIGH';}
+            else if(txt.includes('health')||txt.includes('virus')||txt.includes('outbreak')){category='Public Health';impact='MEDIUM';}
+            else if(txt.includes('liquidity')||txt.includes('money supply')||txt.includes('repo')){category='Liquidity';impact='LOW';}
+            else if(txt.includes('expir')||txt.includes('gamma')||txt.includes('volatility')){category='Mkt Structure';impact='MEDIUM';}
             return {headline:title,category,time:timeStr,impact,pubDate:dateObj.getTime()};
           })
           .filter(item=>item.headline&&item.headline.length>10)
@@ -962,79 +1146,86 @@ async function fetchNews(which){
         }
       }catch(feedErr){continue;}
     }
-
-    // If tomorrow's tab, filter for scheduled/upcoming items and add economic calendar
     if(which==='tomorrow'){
-      // Add known upcoming events for tomorrow
-      const tomorrow=new Date(Date.now()+86400000);
-      const dayName=tomorrow.toLocaleDateString('en-US',{weekday:'long'});
-      const dateStr=tomorrow.toLocaleDateString('en-US',{month:'short',day:'numeric'});
-      // Scheduled economic events (static calendar items common each week)
-      const scheduledItems=getScheduledEvents(tomorrow);
-      items=[...scheduledItems,...items.slice(0,7)].slice(0,10);
+      const sched=getScheduledEvents(new Date(Date.now()+86400000));
+      items=[...sched,...items].slice(0,10);
     }
-
-    if(items.length>0){
-      newsCache[which]=items;
-      renderNewsItems(el,items);
-    } else {
-      throw new Error('no items');
-    }
+    if(items.length>0){newsCache[which]=items;renderNewsTable(tableEl,countEl,items);}
+    else throw new Error('no items');
   }catch(e){
     console.error('fetchNews failed:',e);
-    // Show meaningful fallback with market calendar info
     const fallback=getFallbackNews(which);
     newsCache[which]=fallback;
-    renderNewsItems(el,fallback);
+    renderNewsTable(tableEl,countEl,fallback);
   }
 }
 
+function renderNewsTable(tableEl,countEl,items){
+  if(!tableEl)return;
+  if(!items||!items.length){tableEl.innerHTML='<div style="padding:20px;text-align:center;color:var(--text3)">No major news found</div>';return;}
+  if(countEl) countEl.textContent=items.length+' items';
+  const impBg=i=>i==='HIGH'?'var(--rbg)':i==='MEDIUM'?'var(--abg)':'var(--gbg)';
+  const impCol=i=>i==='HIGH'?'var(--rt)':i==='MEDIUM'?'var(--at)':'var(--gt)';
+  const catStyle=c=>{
+    if(c.includes('Rate')||c.includes('Bond'))return 'background:var(--gbg);color:var(--gt)';
+    if(c.includes('Earn')||c.includes('QQQ'))return 'background:var(--abg);color:var(--at)';
+    if(c.includes('Geo')||c.includes('Fiscal')||c.includes('Health'))return 'background:var(--rbg);color:var(--rt)';
+    if(c.includes('Tech'))return 'background:rgba(138,79,247,0.18);color:#c084fc';
+    if(c.includes('Comm'))return 'background:rgba(234,179,8,0.18);color:#fde047';
+    if(c.includes('Sent'))return 'background:var(--bg4);color:var(--text3)';
+    return 'background:var(--bbg);color:var(--bt)';
+  };
+  tableEl.innerHTML=`<table style="width:100%;border-collapse:collapse">
+    <thead><tr style="background:var(--bg3)">
+      <th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--border);width:32px">#</th>
+      <th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--border);width:72px">Impact</th>
+      <th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--border);width:88px">Category</th>
+      <th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--border)">Headline</th>
+      <th style="padding:8px 10px;text-align:right;font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--border);width:72px">Time ET</th>
+    </tr></thead>
+    <tbody>${items.map((item,i)=>`
+      <tr style="border-bottom:${i<items.length-1?'1px solid var(--border)':'none'};background:${i%2===0?'transparent':'rgba(255,255,255,0.02)'}">
+        <td style="padding:10px 10px;vertical-align:top;font-size:12px;font-weight:800;color:var(--text3);text-align:center">${i+1}</td>
+        <td style="padding:10px 10px;vertical-align:top">
+          <span style="display:inline-block;font-size:10px;font-weight:800;padding:3px 7px;border-radius:5px;background:${impBg(item.impact)};color:${impCol(item.impact)}">${item.impact}</span>
+        </td>
+        <td style="padding:10px 10px;vertical-align:top">
+          <span style="display:inline-block;font-size:9px;font-weight:800;padding:3px 6px;border-radius:5px;${catStyle(item.category)};line-height:1.4;text-align:center">${item.category}</span>
+        </td>
+        <td style="padding:10px 10px;vertical-align:top;font-size:13px;font-weight:600;color:var(--text);line-height:1.5">${item.headline}</td>
+        <td style="padding:10px 10px;vertical-align:top;font-size:11px;color:var(--text3);text-align:right;white-space:nowrap;font-weight:600">${item.time||'—'}</td>
+      </tr>`).join('')}
+    </tbody></table>`;
+}
+
 function getScheduledEvents(date){
-  const day=date.getDay(); // 0=Sun,1=Mon...5=Fri
-  const dateStr=date.toLocaleDateString('en-US',{month:'short',day:'numeric'});
-  const events=[];
-  // Weekly scheduled items
-  if(day===1)events.push({headline:`${dateStr}: Options expiration prep — watch QQQ gamma levels`,category:'Market Structure',time:'9:30 AM ET',impact:'MEDIUM'});
-  if(day===3||day===4)events.push({headline:`${dateStr}: Weekly jobless claims release (8:30 AM ET)`,category:'Economic Data',time:'8:30 AM ET',impact:'HIGH'});
-  if(day===5)events.push({headline:`${dateStr}: Options expiration day — elevated volatility expected`,category:'Market Structure',time:'All Day',impact:'HIGH'});
-  events.push({headline:`${dateStr}: Check earnings calendar for Nasdaq 100 components`,category:'Earnings/QQQ',time:'Check AMC/BMO',impact:'MEDIUM'});
-  events.push({headline:`${dateStr}: Fed speakers schedule — monitor for rate guidance`,category:'Interest Rates/Bonds',time:'TBD',impact:'MEDIUM'});
-  events.push({headline:`${dateStr}: Watch crude oil inventory report impact on macro sentiment`,category:'Commodities',time:'10:30 AM ET',impact:'LOW'});
-  return events;
+  const day=date.getDay();
+  const ds=date.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  const ev=[];
+  if(day===3||day===4)ev.push({headline:`${ds}: Weekly jobless claims (8:30 AM ET)`,category:'Economic Data',time:'8:30 AM',impact:'HIGH'});
+  if(day===5)ev.push({headline:`${ds}: Options expiration day — elevated QQQ volatility expected`,category:'Mkt Structure',time:'All Day',impact:'HIGH'});
+  if(day===1)ev.push({headline:`${ds}: Monitor QQQ gamma levels post-weekend`,category:'Mkt Structure',time:'9:30 AM',impact:'MEDIUM'});
+  ev.push({headline:`${ds}: Check earnings calendar — Nasdaq 100 component reports`,category:'Earnings/QQQ',time:'AMC/BMO',impact:'MEDIUM'});
+  ev.push({headline:`${ds}: Fed speaker schedule — watch for rate guidance`,category:'Rates/Bonds',time:'TBD',impact:'MEDIUM'});
+  ev.push({headline:`${ds}: Crude oil & commodities — macro sentiment impact`,category:'Commodities',time:'10:30 AM',impact:'LOW'});
+  return ev;
 }
 
 function getFallbackNews(which){
   const now=new Date();
-  const dateStr=which==='today'?now.toLocaleDateString('en-US',{month:'short',day:'numeric'}):new Date(Date.now()+86400000).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  const ds=which==='today'?now.toLocaleDateString('en-US',{month:'short',day:'numeric'}):new Date(Date.now()+86400000).toLocaleDateString('en-US',{month:'short',day:'numeric'});
   return [
-    {headline:`${dateStr}: Federal Reserve officials monitoring inflation and labor data`,category:'Interest Rates/Bonds',time:'Ongoing',impact:'HIGH'},
-    {headline:`${dateStr}: QQQ/Nasdaq 100 components — check individual earnings reports`,category:'Earnings/QQQ',time:'After Close',impact:'HIGH'},
-    {headline:`${dateStr}: Treasury yields movement affecting tech valuations`,category:'Interest Rates/Bonds',time:'Market Hours',impact:'HIGH'},
-    {headline:`${dateStr}: AI sector developments impacting semiconductor stocks`,category:'Tech/AI',time:'Ongoing',impact:'MEDIUM'},
-    {headline:`${dateStr}: Crude oil price movement affecting market inflation outlook`,category:'Commodities',time:'Market Hours',impact:'MEDIUM'},
-    {headline:`${dateStr}: VIX levels indicating market volatility expectations`,category:'Sentiment',time:'Market Hours',impact:'MEDIUM'},
-    {headline:`${dateStr}: US Dollar strength impacting multinational QQQ components`,category:'Market',time:'Ongoing',impact:'MEDIUM'},
-    {headline:`${dateStr}: Options market positioning data for next week's expiration`,category:'Market Structure',time:'EOD',impact:'LOW'},
-    {headline:`${dateStr}: Global geopolitical tensions affecting risk appetite`,category:'Geopolitical',time:'Ongoing',impact:'MEDIUM'},
-    {headline:`${dateStr}: Money supply and Fed balance sheet weekly update`,category:'Liquidity',time:'4:30 PM ET',impact:'LOW'},
+    {headline:`${ds}: Federal Reserve policy stance — monitoring inflation and labor market`,category:'Rates/Bonds',time:'Ongoing',impact:'HIGH'},
+    {headline:`${ds}: Nasdaq 100 component earnings — check NVDA, AAPL, MSFT, AMZN, META`,category:'Earnings/QQQ',time:'After Close',impact:'HIGH'},
+    {headline:`${ds}: Treasury yields movement pressuring tech stock valuations`,category:'Rates/Bonds',time:'Market Hours',impact:'HIGH'},
+    {headline:`${ds}: AI and semiconductor sector developments`,category:'Tech/AI',time:'Ongoing',impact:'MEDIUM'},
+    {headline:`${ds}: Crude oil price volatility affecting broad market inflation outlook`,category:'Commodities',time:'Market Hours',impact:'MEDIUM'},
+    {headline:`${ds}: VIX and put/call ratio — current volatility expectations`,category:'Sentiment',time:'Market Hours',impact:'MEDIUM'},
+    {headline:`${ds}: Geopolitical risks affecting global risk appetite`,category:'Geopolitical',time:'Ongoing',impact:'MEDIUM'},
+    {headline:`${ds}: US Dollar index impact on multinational QQQ components`,category:'Market',time:'Ongoing',impact:'MEDIUM'},
+    {headline:`${ds}: Options expiration positioning and gamma exposure levels`,category:'Mkt Structure',time:'EOD',impact:'LOW'},
+    {headline:`${ds}: Fed balance sheet and repo market liquidity update`,category:'Liquidity',time:'4:30 PM',impact:'LOW'},
   ];
-}
-
-function renderNewsItems(el,items){
-  if(!items||!items.length){el.innerHTML='<div class="news-loading">No major news found</div>';return;}
-  el.innerHTML=items.map(item=>{
-    const impCls=item.impact==='HIGH'?'ni-high':item.impact==='MEDIUM'?'ni-med':'ni-low';
-    const cCls=catClass(item.category||'');
-    const cShort=catShort(item.category||'');
-    return `<div class="news-item">
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap">
-        <span class="news-cat ${cCls}">${cShort}</span>
-        <span class="news-impact ${impCls}">${item.impact}</span>
-        <span class="news-time">${item.time||''}</span>
-      </div>
-      <div class="news-headline">${item.headline}</div>
-    </div>`;
-  }).join('');
 }
 
 // ══════════════════════════════════════════
@@ -1471,8 +1662,240 @@ function saveTrades(){localStorage.setItem('qqq-trades-v4',JSON.stringify(trades
 function loadTrades(){try{trades=JSON.parse(localStorage.getItem('qqq-trades-v4')||'[]');}catch{trades=[];}try{openPos=JSON.parse(localStorage.getItem('qqq-open-v4')||'[]');}catch{openPos=[];}}
 
 // ══════════════════════════════════════════
-// MONTHLY CHART
+// RECORD TRADE
 // ══════════════════════════════════════════
+let recordedPos = null;
+let rtRecInterval = null;
+
+function initRecordTab(){
+  const now = new Date();
+  document.getElementById('rt-date').value = now.toISOString().split('T')[0];
+  document.getElementById('rt-time').value = now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'America/New_York'});
+  // Default expiration = tomorrow (next trading day)
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate()+1);
+  if(tomorrow.getDay()===0)tomorrow.setDate(tomorrow.getDate()+1);
+  if(tomorrow.getDay()===6)tomorrow.setDate(tomorrow.getDate()+2);
+  document.getElementById('rt-exp').value = tomorrow.toISOString().split('T')[0];
+  onRT();
+  // If a position is already recorded, show it
+  if(recordedPos) { showRTRec(); updateRTRec(); }
+}
+
+function onRT(){
+  const action = document.getElementById('rt-action').value;
+  const qty = parseInt(document.getElementById('rt-qty').value)||0;
+  const strike = parseFloat(document.getElementById('rt-strike').value)||0;
+  const price = parseFloat(document.getElementById('rt-price').value)||0;
+  const expDate = document.getElementById('rt-exp').value;
+  const type = document.getElementById('rt-type').value;
+  const btn = document.getElementById('rt-btn');
+  const isSell = action==='sell_open';
+
+  btn.style.background = isSell ? 'var(--red)' : 'var(--blue)';
+  btn.textContent = isSell
+    ? `Record: Sell to Open ${qty} Contract${qty!==1?'s':''}`
+    : `Record: Buy to Close ${qty} Contract${qty!==1?'s':''}`;
+  btn.disabled = !(strike && qty && price && expDate);
+
+  // Show summary
+  const sumEl = document.getElementById('rt-summary');
+  const sumBody = document.getElementById('rt-summary-body');
+  if(strike && qty && price && expDate){
+    sumEl.style.display = 'block';
+    const expFmt = expDate ? new Date(expDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'}) : '—';
+    const total = Math.round(price*100*qty*100)/100;
+    const isBull = isSell;
+    sumBody.innerHTML = `
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--text3)">Position</span><span style="font-weight:700">QQQ ${expFmt} $${strike} ${type.charAt(0).toUpperCase()+type.slice(1)}</span></div>
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--text3)">Action</span><span style="font-weight:700;color:${isSell?'var(--rt)':'var(--bt)'}">${isSell?'Sell to Open':'Buy to Close'}</span></div>
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--text3)">Qty</span><span style="font-weight:700">${qty} contracts</span></div>
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--text3)">Exec price</span><span style="font-weight:700">$${price.toFixed(2)}/share</span></div>
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--text3)">${isSell?'Premium collected':'Cost'}</span><span style="font-weight:700;color:${isSell?'var(--gt)':'var(--rt)'}">${isSell?'+':'-'}$${total.toLocaleString()}</span></div>`;
+  } else {
+    sumEl.style.display='none';
+  }
+}
+
+function recordTrade(){
+  const action = document.getElementById('rt-action').value;
+  const qty = parseInt(document.getElementById('rt-qty').value)||0;
+  const strike = parseFloat(document.getElementById('rt-strike').value)||0;
+  const price = parseFloat(document.getElementById('rt-price').value)||0;
+  const expDate = document.getElementById('rt-exp').value;
+  const execDate = document.getElementById('rt-date').value;
+  const execTime = document.getElementById('rt-time').value;
+  const type = document.getElementById('rt-type').value;
+  const broker = document.getElementById('rt-broker').value;
+  const notes = document.getElementById('rt-notes').value.trim();
+  if(!strike||!qty||!price||!expDate){toast('Fill in all required fields');return;}
+
+  const isSell = action==='sell_open';
+  const expFmt = new Date(expDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'});
+  const sym = `QQQ ${expFmt} $${strike} ${type.charAt(0).toUpperCase()+type.slice(1)}`;
+  const total = Math.round(price*100*qty*100)/100;
+
+  if(isSell){
+    // Record as open position
+    recordedPos = {
+      id: Date.now(), symbol: sym, strike, type, qty, execPrice: price,
+      expDate, expFmt, execDate, execTime, broker, notes,
+      openedAt: new Date().toISOString(), status:'open', tradeType:'sto',
+      total, source:'recorded'
+    };
+    // Also add to openPos so it shows in Positions tab
+    openPos.push({...recordedPos});
+    trades.unshift({...recordedPos});
+    saveTrades();
+    showRTRec();
+    updateRTRec();
+    toast(`✓ Recorded: ${sym} @ $${price.toFixed(2)}`);
+  } else {
+    // BTC — find matching recorded open position
+    if(recordedPos && recordedPos.strike===strike){
+      const gain = Math.round((recordedPos.execPrice-price)*100*qty*100)/100;
+      const closed = {...recordedPos, closePrice:price, gain,
+        closedAt:new Date().toISOString(), tradeType:'btc', status:'closed'};
+      trades.unshift(closed);
+      const idx = openPos.findIndex(p=>p.id===recordedPos.id);
+      if(idx>=0) openPos.splice(idx,1);
+      saveTrades();
+      recordedPos = null;
+      document.getElementById('rt-rec-wrap').style.display='none';
+      toast(`✓ BTC recorded: ${sym} @ $${price.toFixed(2)} · P&L: ${gain>=0?'+':''}$${gain.toLocaleString()}`);
+      renderPositions();
+    } else {
+      // Just log the BTC without a matching open
+      trades.unshift({id:Date.now(),symbol:sym,strike,type,qty,execPrice:price,
+        expDate,execDate,execTime,broker,notes,
+        closedAt:new Date().toISOString(),tradeType:'btc',status:'closed',gain:null,source:'recorded'});
+      saveTrades();
+      toast(`✓ BTC recorded: ${sym} @ $${price.toFixed(2)}`);
+    }
+  }
+}
+
+function showRTRec(){
+  if(!recordedPos) return;
+  document.getElementById('rt-rec-wrap').style.display='block';
+  document.getElementById('rt-action-btns').style.display='grid';
+  // Fill static fields
+  document.getElementById('rm-symbol').textContent = recordedPos.symbol;
+  document.getElementById('rm-sold').textContent = '$'+recordedPos.execPrice.toFixed(2)+'/sh · '+recordedPos.qty+' contracts';
+  document.getElementById('rm-stop').textContent = '$'+(recordedPos.execPrice*2).toFixed(2)+'/sh (2× rule)';
+  document.getElementById('rm-target').textContent = '$'+(recordedPos.execPrice*0.15).toFixed(2)+'/sh (15% decay)';
+  document.getElementById('rm-exp').textContent = recordedPos.expFmt;
+  updateRTRec();
+  // Auto-refresh every 10 seconds
+  clearInterval(rtRecInterval);
+  rtRecInterval = setInterval(updateRTRec, 10000);
+}
+
+function updateRTRec(){
+  if(!recordedPos) return;
+  const spot = LD.qqq || recordedPos.strike + 10;
+  const ptsOTM = spot - recordedPos.strike;
+  const soldPrice = recordedPos.execPrice;
+  // Estimate current option value using simplified model
+  const timeToExp = Math.max(0, (new Date(recordedPos.expDate+'T16:00:00') - new Date()) / (1000*60*60*24));
+  const ivEst = (LD.vix||20) / 100;
+  const intrinsic = Math.max(0, recordedPos.strike - spot);
+  const timeVal = soldPrice * Math.min(1, Math.sqrt(timeToExp/1)) * 0.5 + intrinsic;
+  const curEst = Math.max(0.01, Math.round(Math.min(timeVal, soldPrice*3)*100)/100);
+  const decayPct = Math.round((1 - curEst/soldPrice)*100);
+  const unrealPnL = Math.round((soldPrice - curEst)*100*recordedPos.qty*100)/100;
+
+  document.getElementById('rm-qqq').textContent = '$'+spot.toFixed(2);
+  document.getElementById('rm-otm').textContent = ptsOTM>=0 ? '+'+ptsOTM.toFixed(1)+' pts OTM' : Math.abs(ptsOTM).toFixed(1)+' pts ITM';
+  document.getElementById('rm-otm').style.color = ptsOTM>=0?'var(--gt)':'var(--rt)';
+  document.getElementById('rm-cur').textContent = '$'+curEst.toFixed(2)+'/sh (est.)';
+  document.getElementById('rm-decay').textContent = decayPct+'% captured';
+  document.getElementById('rm-decay').style.color = decayPct>=50?'var(--gt)':decayPct>=20?'var(--at)':'var(--text2)';
+  const pnlEl = document.getElementById('rm-pnl');
+  pnlEl.textContent = (unrealPnL>=0?'+':'')+'$'+unrealPnL.toLocaleString()+' unrealized';
+  pnlEl.style.color = unrealPnL>=0?'var(--gt)':'var(--rt)';
+
+  // Recommendation logic
+  const card = document.getElementById('rt-status-card');
+  const lbl = document.getElementById('rt-status-lbl');
+  const title = document.getElementById('rt-rec-title');
+  const desc = document.getElementById('rt-rec-desc');
+  const detail = document.getElementById('rt-rec-detail');
+  const rule = document.getElementById('rt-rec-rule');
+  detail.style.display = 'block';
+
+  const isStop = curEst >= soldPrice * 2;
+  const isTarget = decayPct >= 85 || curEst <= soldPrice * 0.15;
+  const isNearStrike = ptsOTM >= 0 && ptsOTM <= 3;
+  const isITM = ptsOTM < 0;
+  const isExpiring = timeToExp < 0.25; // less than 6 hours
+
+  if(isITM){
+    card.className='sig sig-r';lbl.textContent='⚠ IN THE MONEY';
+    title.textContent=`BTC Now — QQQ has breached your $${recordedPos.strike} strike`;
+    desc.textContent=`QQQ ($${spot.toFixed(2)}) is ${Math.abs(ptsOTM).toFixed(1)}pts below your strike. Est. loss: -$${Math.abs(unrealPnL).toLocaleString()}. Close immediately to limit further damage.`;
+    rule.textContent="Your rule: never let a short put go deep ITM. Close and reassess. Do NOT roll in a falling market.";
+  } else if(isStop){
+    card.className='sig sig-r';lbl.textContent='✗ STOP LOSS TRIGGERED';
+    title.textContent=`Close Now — Premium has hit your 2× stop`;
+    desc.textContent=`Est. value $${curEst.toFixed(2)}/sh has reached 2× what you sold ($${soldPrice.toFixed(2)}). Your hard stop rule says close immediately. Est. loss: -$${Math.abs(unrealPnL).toLocaleString()}.`;
+    rule.textContent="Your 2× stop rule: if premium doubles from your sell price, close without hesitation. Your 5 largest historical losses all ignored this rule.";
+  } else if(isTarget || isExpiring){
+    card.className='sig sig-g';lbl.textContent='✓ PROFIT TARGET REACHED';
+    title.textContent=`BTC Now — Lock in $${unrealPnL.toLocaleString()} profit`;
+    desc.textContent=`${decayPct}% of premium has decayed (target: 85%). Est. BTC cost: $${curEst.toFixed(2)}/sh. ${isExpiring?'Expiration is very close — let expire or BTC for pennies.':'Exit now to eliminate overnight/assignment risk.'}`;
+    rule.textContent="Your rule: exit at 85% decay (or when premium reaches 15% of sold price). Holding for the last 15% adds risk without meaningful reward.";
+  } else if(isNearStrike){
+    card.className='sig sig-a';lbl.textContent='⚠ APPROACHING STRIKE';
+    title.textContent=`Monitor Closely — Only ${ptsOTM.toFixed(1)}pts of buffer`;
+    desc.textContent=`QQQ ($${spot.toFixed(2)}) is within 3pts of your $${recordedPos.strike} strike. ${decayPct>=50?'You\'ve captured '+decayPct+'% of premium — consider taking profits now.':'Watch for a roll opportunity if QQQ stabilizes.'}`;
+    rule.textContent="Roll rule: if QQQ is within 3pts of strike with >2hrs left, close and sell next-day expiry 5–8pts further OTM. Only roll if market is NOT in free-fall.";
+  } else if(decayPct >= 50){
+    card.className='sig sig-g';lbl.textContent='✓ HOLDING — GOOD PROGRESS';
+    title.textContent=`${decayPct}% decayed — Consider early exit`;
+    desc.textContent=`You've captured $${unrealPnL.toLocaleString()} (${decayPct}% of max). ${decayPct>=70?'Premium is getting thin — consider closing to remove risk.':'Holding is reasonable but watch VIX and QQQ for any breakdown.'}`;
+    rule.textContent=`Your median exit is at 85% decay. At ${decayPct}%, you can close early for a solid gain or continue holding toward the target.`;
+  } else {
+    card.className='sig sig-g';lbl.textContent='✓ HOLD — WITHIN NORMAL RANGE';
+    title.textContent=`Hold — ${ptsOTM.toFixed(1)}pts OTM, ${decayPct}% decayed`;
+    desc.textContent=`Position is tracking normally. ${ptsOTM.toFixed(1)}pts of buffer with $${curEst.toFixed(2)}/sh est. current value. No action needed — let theta work.`;
+    rule.textContent=`Target exit: $${(soldPrice*0.15).toFixed(2)}/sh (15% of $${soldPrice.toFixed(2)} sold). Stop loss: $${(soldPrice*2).toFixed(2)}/sh. Currently at $${curEst.toFixed(2)}/sh — well within normal range.`;
+  }
+}
+
+function rtBTC(){
+  if(!recordedPos) return;
+  const curEst = parseFloat(document.getElementById('rm-cur').textContent.replace('$',''))||0;
+  // Pre-fill the record form for BTC
+  document.getElementById('rt-action').value = 'buy_close';
+  document.getElementById('rt-strike').value = recordedPos.strike;
+  document.getElementById('rt-qty').value = recordedPos.qty;
+  document.getElementById('rt-exp').value = recordedPos.expDate;
+  document.getElementById('rt-type').value = recordedPos.type;
+  document.getElementById('rt-price').value = curEst.toFixed(2);
+  const now = new Date();
+  document.getElementById('rt-date').value = now.toISOString().split('T')[0];
+  document.getElementById('rt-time').value = now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'America/New_York'});
+  document.getElementById('rt-rec-wrap').style.display='none';
+  document.getElementById('rt-summary').style.display='block';
+  onRT();
+  toast('BTC pre-filled — update price and tap Record');
+}
+
+function rtClear(){
+  if(!confirm('Clear this recorded position?')) return;
+  clearInterval(rtRecInterval);
+  recordedPos = null;
+  document.getElementById('rt-rec-wrap').style.display='none';
+  document.getElementById('rt-summary').style.display='none';
+  document.getElementById('rt-action').value='sell_open';
+  document.getElementById('rt-strike').value='';
+  document.getElementById('rt-price').value='';
+  document.getElementById('rt-notes').value='';
+  onRT();
+  toast('Position cleared');
+}
+
 function renderChart(){
   const months=["Jun '25","Jul '25","Aug '25","Sep '25","Oct '25","Nov '25","Dec '25","Jan '26","Feb '26","Mar '26","Apr '26"];
   const pnl=[2425,-830,11324,17064,6924,-7763,6426,6876,14256,7597,3295];
