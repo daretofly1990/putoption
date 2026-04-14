@@ -276,6 +276,24 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 <div id="panel-signal" class="panel active">
   <div id="pos-alert-wrap"></div>
 
+  <!-- OPEN POSITIONS on Signal tab -->
+  <div id="sig-positions-wrap" style="display:none;margin-bottom:14px">
+    <p class="stitle" style="margin-bottom:8px">Open positions</p>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
+      <table style="width:100%;border-collapse:collapse;min-width:320px">
+        <thead>
+          <tr style="background:var(--bg3)">
+            <th style="padding:8px 12px;text-align:left;font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--border)">Position</th>
+            <th style="padding:8px 12px;text-align:right;font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--border);width:80px">Sold @</th>
+            <th style="padding:8px 12px;text-align:right;font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--border);width:80px">P&amp;L</th>
+            <th style="padding:8px 12px;text-align:center;font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--border);width:110px">Recommendation</th>
+          </tr>
+        </thead>
+        <tbody id="sig-pos-body"></tbody>
+      </table>
+    </div>
+  </div>
+
   <!-- Main signal -->
   <div id="sig-card" class="sig sig-g">
     <div class="sig-lbl">
@@ -814,47 +832,52 @@ function updateMktStatus(){
 // LIVE DATA FETCH — public APIs, no key needed
 // ══════════════════════════════════════════
 
-// Yahoo Finance via allorigins CORS proxy
+// Yahoo Finance via multiple CORS proxies (GitHub Pages needs this)
 async function fetchYahoo(symbol){
-  const url=`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=60d`;
-  const proxy=`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-  const r=await fetch(proxy,{cache:'no-store'});
-  const json=await r.json();
-  return JSON.parse(json.contents);
+  const url=`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=60d&includePrePost=true`;
+  // Try multiple proxies in order — GitHub Pages blocks direct fetch, need a working proxy
+  const proxies=[
+    `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+    `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
+  ];
+  for(const proxy of proxies){
+    try{
+      const r=await fetch(proxy,{cache:'no-store',signal:AbortSignal.timeout(8000)});
+      if(!r.ok)continue;
+      const text=await r.text();
+      // allorigins wraps in {contents:...}, others return raw JSON
+      let data;
+      try{const j=JSON.parse(text);data=j.contents?JSON.parse(j.contents):j;}
+      catch{continue;}
+      if(data?.chart?.result?.[0])return data;
+    }catch(e){continue;}
+  }
+  throw new Error('All proxies failed for '+symbol);
 }
 
 async function fetchLD(){
   try{
-    // Fetch QQQ and VIX in parallel
     const [qData,vData]=await Promise.all([fetchYahoo('QQQ'),fetchYahoo('%5EVIX')]);
 
     const qMeta=qData.chart.result[0].meta;
-    const qCloses=qData.chart.result[0].indicators.quote[0].close.filter(v=>v!==null);
+    const qCloses=qData.chart.result[0].indicators.quote[0].close.filter(v=>v!=null);
     const qqq=qMeta.regularMarketPrice||qMeta.previousClose;
     const prevClose=qMeta.chartPreviousClose||qMeta.previousClose;
-    const bid=qMeta.bid||qqq-.05;
-    const ask=qMeta.ask||qqq+.05;
+    const bid=qMeta.bid||(qqq-.05);
+    const ask=qMeta.ask||(qqq+.05);
     const chg=((qqq-prevClose)/prevClose*100);
 
-    // Extended hours
     const extPrice=qMeta.postMarketPrice||qMeta.preMarketPrice||null;
     const extChg=extPrice?((extPrice-qqq)/qqq*100):null;
     const extLabel=qMeta.postMarketPrice?'AH':'PRE';
     const isExt=!!extPrice;
 
-    // Compute SMAs from 60d close history
     const closes=qCloses.slice(-60);
-    const sma=n=>closes.slice(-n).reduce((a,b)=>a+b,0)/Math.min(n,closes.length);
+    const sma=n=>closes.length>=n?closes.slice(-n).reduce((a,b)=>a+b,0)/n:closes.reduce((a,b)=>a+b,0)/closes.length;
     const sma5=sma(5),sma20=sma(20),sma50=sma(50);
-
-    // EMA helper
-    const ema=(n)=>{
-      const k=2/(n+1);let e=closes[0];
-      closes.forEach(c=>{e=c*k+e*(1-k);});return e;
-    };
+    const ema=(n)=>{const k=2/(n+1);let e=closes[0];closes.forEach(c=>{e=c*k+e*(1-k);});return e;};
     const ema9=ema(9),ema21=ema(21);
-
-    // Pre-market change from yesterday's close
     const pmChg=qMeta.preMarketPrice?((qMeta.preMarketPrice-prevClose)/prevClose*100):chg;
 
     const vixMeta=vData.chart.result[0].meta;
@@ -867,11 +890,12 @@ async function fetchLD(){
   }catch(e){
     console.error('fetchLD failed:',e);
     if(!LD.ok){
-      // Fallback cached values so UI doesn't stay blank
       LD={qqq:609.90,bid:609.85,ask:609.95,vix:19.5,ma20:598.0,sma5:611.0,sma50:592.0,
           ema9:608.0,ema21:601.0,chg:0.31,pmChg:0.15,extPrice:610.50,extChg:0.10,
-          extLabel:'AH',isExt:true,asOf:'cached',ok:true};
+          extLabel:'AH',isExt:true,asOf:'cached — tap to retry',ok:true};
       applyLD();
+      // Auto-retry after 15 seconds
+      setTimeout(fetchLD,15000);
     }
   }
 }
@@ -931,7 +955,7 @@ function applyLD(){
   }
   // QQQ Trend (SMA/EMA analysis)
   updateTrend();
-  updateSig();renderSug();renderPosAlert();
+  updateSig();renderSug();renderPosAlert();renderSigPositions();
 }
 
 function updateTrend(){
@@ -1008,7 +1032,7 @@ function streamTick(){
     if(er)er.style.display='flex';
   }
   document.getElementById('clock-et').textContent=new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',second:'2-digit',timeZone:'America/New_York'})+' ET';
-  simOQ();renderPosAlert();
+  simOQ();renderPosAlert();renderSigPositions();
 }
 
 function simOQ(){
@@ -1265,6 +1289,36 @@ function startCountdown(){
 // ══════════════════════════════════════════
 // OPEN POSITION ALERT
 // ══════════════════════════════════════════
+function renderSigPositions(){
+  const wrap=document.getElementById('sig-positions-wrap');
+  const tbody=document.getElementById('sig-pos-body');
+  if(!wrap||!tbody)return;
+  if(!openPos.length){wrap.style.display='none';return;}
+  wrap.style.display='block';
+  tbody.innerHTML=openPos.map((pos,idx)=>{
+    const r=buildRec(pos);
+    const unrealColor=r.unrealPnL>=0?'var(--gt)':'var(--rt)';
+    return `<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:10px 12px;vertical-align:middle">
+        <div style="font-size:12px;font-weight:700;color:var(--bt);line-height:1.3">${pos.symbol}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px">${pos.qty} contracts · expires ${pos.expFmt||pos.expLbl||'—'}</div>
+      </td>
+      <td style="padding:10px 12px;text-align:right;vertical-align:middle">
+        <div style="font-size:12px;font-weight:700;color:var(--text)">$${pos.execPrice.toFixed(2)}</div>
+        <div style="font-size:10px;color:var(--text3)">per share</div>
+      </td>
+      <td style="padding:10px 12px;text-align:right;vertical-align:middle">
+        <div style="font-size:12px;font-weight:800;color:${unrealColor}">${r.unrealPnL>=0?'+':'-'}$${Math.abs(r.unrealPnL).toLocaleString()}</div>
+        <div style="font-size:10px;color:var(--text3)">${r.decayPct}% decayed</div>
+      </td>
+      <td style="padding:10px 12px;text-align:center;vertical-align:middle">
+        <button onclick="showRecModal(${idx})" style="border:none;border-radius:6px;padding:6px 10px;font-size:10px;font-weight:800;cursor:pointer;color:#fff;background:${r.recColor};white-space:nowrap;display:block;width:100%;margin-bottom:3px">${r.recLabel}</button>
+        <div style="font-size:9px;color:var(--text3)">${r.ptsOTM.toFixed(1)}pts OTM</div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
 function renderPosAlert(){
   const wrap=document.getElementById('pos-alert-wrap');
   if(!openPos.length){wrap.innerHTML='';return;}
