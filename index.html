@@ -251,9 +251,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         </div>
         <div id="clocks-block" style="margin-top:4px;text-align:right">
           <div id="clock-et" style="font-size:10px;font-weight:700;color:var(--text2);font-variant-numeric:tabular-nums;white-space:nowrap">— ET</div>
-          <div id="clock-ct" style="font-size:9px;font-weight:600;color:var(--text3);font-variant-numeric:tabular-nums;white-space:nowrap">— CT</div>
-          <div id="clock-mt" style="font-size:9px;font-weight:600;color:var(--text3);font-variant-numeric:tabular-nums;white-space:nowrap">— MT</div>
-          <div id="clock-pt" style="font-size:9px;font-weight:600;color:var(--text3);font-variant-numeric:tabular-nums;white-space:nowrap">— PT</div>
           <div id="delay-badge" style="margin-top:3px;display:inline-block;font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px;background:var(--abg);color:var(--at)">15-min delay</div>
         </div>
       </div>
@@ -819,15 +816,9 @@ function updateMktStatus(){
     const hh=d2.getHours(),mm=d2.getMinutes(),ss=d2.getSeconds();
     return `${hh%12||12}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')} ${hh>=12?'PM':'AM'}`;
   };
-  // Update all timezone clocks
+  // Update ET clock only
   const etEl=document.getElementById('clock-et');
-  const ctEl=document.getElementById('clock-ct');
-  const mtEl=document.getElementById('clock-mt');
-  const ptEl=document.getElementById('clock-pt');
   if(etEl) etEl.textContent=fmt('America/New_York')+' ET';
-  if(ctEl) ctEl.textContent=fmt('America/Chicago')+' CT';
-  if(mtEl) mtEl.textContent=fmt('America/Denver')+' MT';
-  if(ptEl) ptEl.textContent=fmt('America/Los_Angeles')+' PT';
   // Market status dot + label
   const dot=document.getElementById('mkt-dot'),lbl=document.getElementById('mkt-lbl');
   if(!dot||!lbl)return;
