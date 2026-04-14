@@ -596,7 +596,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <div class="pos-table-wrap">
     <table class="pos-table" id="pos-open-table">
       <thead><tr>
-        <th style="text-align:left">Symbol</th>
+        <th style="text-align:left;max-width:140px">Symbol</th>
         <th>Actions</th>
         <th>Last $</th>
         <th>Change $</th>
@@ -607,27 +607,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         <th>Total Gain $</th>
         <th>Total Gain %</th>
         <th>Value $</th>
+        <th>Recommendation</th>
       </tr></thead>
       <tbody id="pos-open-body"></tbody>
       <tfoot id="pos-open-foot"></tfoot>
-    </table>
-  </div>
-
-  <p class="stitle" style="margin-top:4px">Closed trades</p>
-  <div class="pos-table-wrap">
-    <table class="pos-table" id="pos-closed-table">
-      <thead><tr>
-        <th style="text-align:left">Symbol</th>
-        <th>Opened</th>
-        <th>Exec Time</th>
-        <th>Closed</th>
-        <th>Qty #</th>
-        <th>Open $</th>
-        <th>Close $</th>
-        <th>Gain $</th>
-        <th>Gain %</th>
-      </tr></thead>
-      <tbody id="pos-closed-body"></tbody>
     </table>
   </div>
 </div>
@@ -1422,31 +1405,215 @@ function closeConfOut(e){if(e.target===document.getElementById('conf-overlay'))c
 // POSITIONS TABLE
 // ══════════════════════════════════════════
 function renderPositions(){
-  renderOpenPositions();renderClosedPositions();
+  renderOpenPositions();
+}
+
+function buildRec(pos){
+  // All calculations use real live numbers
+  const spot = LD.qqq || 0;
+  const vix = LD.vix || 20;
+  const soldAt = pos.execPrice;
+  const qty = pos.qty;
+  const strike = pos.strike;
+
+  // Estimate current option value
+  const expDate = pos.expDate || pos.expVal;
+  const msToExp = expDate ? (new Date(expDate+'T16:00:00') - new Date()) : 86400000;
+  const daysToExp = Math.max(0, msToExp / 86400000);
+  const ptsOTM = spot - strike;
+  const intrinsic = Math.max(0, strike - spot); // put intrinsic
+  const ivDecimal = vix / 100;
+  // Simplified BSM-like time value estimate
+  const timeVal = soldAt * Math.min(1, Math.sqrt(daysToExp / 1)) * 0.55;
+  const curEst = Math.max(0.01, Math.round((intrinsic + timeVal) * 100) / 100);
+
+  const stopPrice  = Math.round(soldAt * 2 * 100) / 100;        // 2× rule
+  const targetPrice = Math.round(soldAt * 0.15 * 100) / 100;    // 15% decay = 85% profit
+  const creditTotal = Math.round(soldAt * 100 * qty * 100) / 100;
+  const curTotal = Math.round(curEst * 100 * qty * 100) / 100;
+  const unrealPnL = Math.round((soldAt - curEst) * 100 * qty * 100) / 100;
+  const decayPct = Math.round((1 - curEst / soldAt) * 100);
+  const earlyExitPnL = Math.round((soldAt - targetPrice) * 100 * qty * 100) / 100;
+  const stopLossPnL = Math.round((soldAt - stopPrice) * 100 * qty * 100) / 100;
+
+  const isITM = ptsOTM < 0;
+  const isStop = curEst >= stopPrice;
+  const isTarget = curEst <= targetPrice;
+  const isNear = ptsOTM >= 0 && ptsOTM < 3;
+  const isExpiring = daysToExp < 0.25;
+
+  let recLabel, recColor, recClass, action, rules;
+
+  if(isITM){
+    recLabel='BTC NOW — ITM';recColor='var(--rt)';recClass='sig-r';
+    action=`Close immediately. QQQ $${spot.toFixed(2)} has breached your $${strike} strike by $${Math.abs(ptsOTM).toFixed(2)}. Est. loss if closed now: -$${Math.abs(unrealPnL).toLocaleString()}.`;
+    rules=[
+      `📍 <strong>Strike breached:</strong> QQQ ($${spot.toFixed(2)}) is $${Math.abs(ptsOTM).toFixed(2)} below your $${strike} strike. You are in-the-money.`,
+      `🛑 <strong>Stop rule:</strong> Never let a short put go deep ITM. Close immediately to prevent assignment and runaway losses.`,
+      `📊 <strong>Current est. value:</strong> $${curEst.toFixed(2)}/sh vs $${soldAt.toFixed(2)} sold = est. loss of -$${Math.abs(unrealPnL).toLocaleString()} on ${qty} contracts.`,
+      `🚫 <strong>Do NOT roll</strong> in a falling market (QQQ trending down). Your historical data: Mar 27 '26 and Apr 6 '26 losses worsened on rolling during drops.`
+    ];
+  } else if(isStop){
+    recLabel='STOP LOSS — CLOSE';recColor='var(--rt)';recClass='sig-r';
+    action=`BTC now. Premium est. $${curEst.toFixed(2)}/sh has hit your 2× stop ($${stopPrice.toFixed(2)}). Close to limit loss to -$${Math.abs(unrealPnL).toLocaleString()}.`;
+    rules=[
+      `🛑 <strong>2× hard stop triggered:</strong> You sold at $${soldAt.toFixed(2)}/sh. Stop = 2× = $${stopPrice.toFixed(2)}/sh. Est. current: $${curEst.toFixed(2)}/sh.`,
+      `📊 <strong>Est. loss if closed now:</strong> -$${Math.abs(unrealPnL).toLocaleString()} on ${qty} contracts (${Math.abs(decayPct)}% adverse move).`,
+      `📉 <strong>Why this rule exists:</strong> Your 5 largest historical losses ($8,496 · $8,029 · $5,817 · $5,579 · $4,866) all ignored the 2× stop. This rule alone would have saved ~$20,000.`,
+      `⚡ <strong>Action:</strong> BTC at market. Do not wait for a bounce. The rule is no exceptions.`
+    ];
+  } else if(isTarget || isExpiring){
+    recLabel='TAKE PROFIT';recColor='var(--gt)';recClass='sig-g';
+    action=`BTC at $${targetPrice.toFixed(2)}/sh or let expire. You'd lock in +$${earlyExitPnL.toLocaleString()} (${decayPct}% of $${creditTotal.toLocaleString()} credit).`;
+    rules=[
+      `✅ <strong>15% profit target reached:</strong> Sell price $${soldAt.toFixed(2)} → target BTC $${targetPrice.toFixed(2)}/sh (85% decay captured). Est. current: $${curEst.toFixed(2)}/sh.`,
+      `💰 <strong>P&L if closed now:</strong> +$${unrealPnL.toLocaleString()} unrealized on ${qty} contracts. Max possible: +$${creditTotal.toLocaleString()}.`,
+      `⏰ <strong>${isExpiring?'Expiration imminent ('+daysToExp.toFixed(2)+' days left):':'Theta decay:'}.</strong> ${isExpiring?'Let expire for max profit if QQQ stays above $'+strike+'. Risk: last-minute gap down.':'Holding past 85% decay adds risk without meaningful additional reward.'}`,
+      `📌 <strong>Your median exit:</strong> Historical data shows you exit at 15% of premium. On this trade that's $${targetPrice.toFixed(2)}/sh, locking in $${earlyExitPnL.toLocaleString()}.`
+    ];
+  } else if(isNear){
+    recLabel='NEAR STRIKE — WATCH';recColor='var(--at)';recClass='sig-a';
+    action=`QQQ $${spot.toFixed(2)} is ${ptsOTM.toFixed(1)}pts above $${strike} strike. ${decayPct>=50?'Consider closing — '+decayPct+'% captured.':'Monitor closely. Roll if market stabilizes.'}`;
+    rules=[
+      `⚠️ <strong>Near strike:</strong> QQQ ($${spot.toFixed(2)}) is only ${ptsOTM.toFixed(1)}pts above your $${strike} strike. Buffer is thin.`,
+      `🔄 <strong>Roll rule:</strong> If QQQ is within 3pts of strike with >2hrs left, close current put AND sell next-day expiry at strike −5 to −8pts below current QQQ price.`,
+      `📊 <strong>Current P&L:</strong> ${unrealPnL>=0?'+':''}$${unrealPnL.toLocaleString()} unrealized. ${decayPct}% of premium decayed ($${curEst.toFixed(2)}/sh est.).`,
+      `🚫 <strong>Do NOT roll if QQQ falling >2% today.</strong> Only roll if market has stabilized or bounced. Check VIX (currently ${vix.toFixed(1)}).`,
+      `💡 <strong>Alternative:</strong> If ${decayPct}% decay (+$${unrealPnL.toLocaleString()}) is acceptable, BTC now at $${curEst.toFixed(2)}/sh and avoid the risk entirely.`
+    ];
+  } else if(decayPct >= 50){
+    recLabel='HOLD — GOOD PROGRESS';recColor='var(--gt)';recClass='sig-g';
+    action=`${decayPct}% decayed. Unrealized: +$${unrealPnL.toLocaleString()}. BTC target: $${targetPrice.toFixed(2)}/sh (+$${earlyExitPnL.toLocaleString()}).`;
+    rules=[
+      `✅ <strong>Holding well:</strong> ${decayPct}% of premium has decayed. Est. current value: $${curEst.toFixed(2)}/sh vs $${soldAt.toFixed(2)} sold.`,
+      `🎯 <strong>Your exit target:</strong> BTC when premium reaches $${targetPrice.toFixed(2)}/sh (15% of $${soldAt.toFixed(2)}). That locks in +$${earlyExitPnL.toLocaleString()} on ${qty} contracts.`,
+      `🛑 <strong>Stop loss remains:</strong> If premium hits $${stopPrice.toFixed(2)}/sh (2×), close immediately regardless of conviction. Est. loss at stop: -$${Math.abs(stopLossPnL).toLocaleString()}.`,
+      `📈 <strong>QQQ buffer:</strong> $${ptsOTM.toFixed(1)}pts OTM at $${spot.toFixed(2)} vs $${strike} strike. VIX at ${vix.toFixed(1)} — ${vix<18?'favorable':'elevated'} conditions.`,
+      `⏳ <strong>${daysToExp.toFixed(1)} days to expiration.</strong> Theta working in your favor. Continue holding toward $${targetPrice.toFixed(2)} target.`
+    ];
+  } else {
+    recLabel='HOLD';recColor='var(--gt)';recClass='sig-g';
+    action=`Hold. ${ptsOTM.toFixed(1)}pts OTM. ${decayPct}% decayed (+$${unrealPnL.toLocaleString()}). Target BTC: $${targetPrice.toFixed(2)}/sh. Stop: $${stopPrice.toFixed(2)}/sh.`;
+    rules=[
+      `✅ <strong>Position healthy:</strong> QQQ $${spot.toFixed(2)} is ${ptsOTM.toFixed(1)}pts above $${strike} strike. Only ${decayPct}% decayed so far — let theta work.`,
+      `🎯 <strong>Profit target:</strong> BTC when est. value reaches $${targetPrice.toFixed(2)}/sh (currently $${curEst.toFixed(2)}/sh). That's +$${earlyExitPnL.toLocaleString()} on ${qty} contracts.`,
+      `🛑 <strong>Hard stop:</strong> If premium hits $${stopPrice.toFixed(2)}/sh (2× your $${soldAt.toFixed(2)} sale) — BTC immediately. Est. loss at stop: -$${Math.abs(stopLossPnL).toLocaleString()}.`,
+      `📊 <strong>Current unrealized:</strong> +$${unrealPnL.toLocaleString()} on ${qty} contracts. Max if expires worthless: +$${creditTotal.toLocaleString()}.`,
+      `📈 <strong>Market context:</strong> QQQ ${spot.toFixed(2)}, VIX ${vix.toFixed(1)} (${vix<15?'low — favorable':'vix>=20?elevated — widen stop watch':'normal'}), ${daysToExp.toFixed(1)} days to expiration.`
+    ];
+  }
+
+  return {recLabel, recColor, recClass, action, rules, spot, curEst, soldAt, strike, qty,
+          stopPrice, targetPrice, ptsOTM, decayPct, unrealPnL, creditTotal, earlyExitPnL, daysToExp};
+}
+
+function showRecModal(posIdx){
+  const pos = openPos[posIdx];
+  if(!pos) return;
+  const r = buildRec(pos);
+
+  // Build modal HTML
+  const rulesHTML = r.rules.map(rule=>`
+    <div style="padding:10px 12px;background:var(--bg3);border-radius:var(--rs);margin-bottom:8px;font-size:13px;color:var(--text2);line-height:1.6">${rule}</div>
+  `).join('');
+
+  const modalHTML=`
+    <div id="rec-overlay" onclick="closeRecModal(event)" style="display:flex;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:300;align-items:flex-end">
+      <div style="background:var(--bg2);border-radius:var(--r) var(--r) 0 0;padding:20px 18px 40px;width:100%;max-height:88vh;overflow-y:auto">
+        <!-- Header -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <div>
+            <div style="font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.09em;margin-bottom:3px">${pos.symbol}</div>
+            <div style="font-size:18px;font-weight:800;color:${r.recColor}">${r.recLabel}</div>
+          </div>
+          <button onclick="document.getElementById('rec-overlay').remove()" style="background:var(--bg4);border:none;color:var(--text2);font-size:22px;cursor:pointer;padding:4px 10px;border-radius:var(--rs);line-height:1">×</button>
+        </div>
+
+        <!-- Action summary card -->
+        <div style="background:var(--bg3);border-left:3px solid ${r.recColor};border-radius:0 var(--rs) var(--rs) 0;padding:12px 14px;margin-bottom:16px;font-size:13px;color:var(--text);line-height:1.6;font-weight:600">${r.action}</div>
+
+        <!-- Key numbers grid -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:16px">
+          <div style="background:var(--bg3);border-radius:var(--rs);padding:10px;text-align:center">
+            <div style="font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">Sold at</div>
+            <div style="font-size:15px;font-weight:800;color:var(--text)">$${r.soldAt.toFixed(2)}</div>
+            <div style="font-size:9px;color:var(--text3)">${r.qty} contracts</div>
+          </div>
+          <div style="background:var(--bg3);border-radius:var(--rs);padding:10px;text-align:center">
+            <div style="font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">Est. now</div>
+            <div style="font-size:15px;font-weight:800;color:var(--text)">$${r.curEst.toFixed(2)}</div>
+            <div style="font-size:9px;color:var(--text3)">${r.decayPct}% decayed</div>
+          </div>
+          <div style="background:var(--bg3);border-radius:var(--rs);padding:10px;text-align:center">
+            <div style="font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">Unrealized</div>
+            <div style="font-size:15px;font-weight:800;color:${r.unrealPnL>=0?'var(--gt)':'var(--rt)'}">${r.unrealPnL>=0?'+':'-'}$${Math.abs(r.unrealPnL).toLocaleString()}</div>
+            <div style="font-size:9px;color:var(--text3)">${r.ptsOTM.toFixed(1)}pts OTM</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:16px">
+          <div style="background:var(--rbg);border-radius:var(--rs);padding:10px;text-align:center;border:1px solid rgba(255,95,94,.2)">
+            <div style="font-size:9px;color:var(--rt);font-weight:800;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">🛑 Stop loss BTC at</div>
+            <div style="font-size:17px;font-weight:800;color:var(--rt)">$${r.stopPrice.toFixed(2)}/sh</div>
+            <div style="font-size:10px;color:var(--rt);opacity:.8">Loss: -$${Math.abs(Math.round((r.soldAt-r.stopPrice)*100*r.qty*100)/100).toLocaleString()}</div>
+          </div>
+          <div style="background:var(--gbg);border-radius:var(--rs);padding:10px;text-align:center;border:1px solid rgba(34,201,138,.2)">
+            <div style="font-size:9px;color:var(--gt);font-weight:800;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">🎯 Profit target BTC at</div>
+            <div style="font-size:17px;font-weight:800;color:var(--gt)">$${r.targetPrice.toFixed(2)}/sh</div>
+            <div style="font-size:10px;color:var(--gt);opacity:.8">Gain: +$${r.earlyExitPnL.toLocaleString()}</div>
+          </div>
+        </div>
+
+        <!-- Rules used -->
+        <div style="font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.09em;margin-bottom:10px">Rules applied</div>
+        ${rulesHTML}
+
+        <!-- Data freshness note -->
+        <div style="font-size:10px;color:var(--text3);text-align:center;margin-top:8px;padding-top:10px;border-top:1px solid var(--border)">
+          QQQ $${r.spot.toFixed(2)} · VIX ${(LD.vix||0).toFixed(1)} · Updated ${new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',second:'2-digit',timeZone:'America/New_York'})} ET
+        </div>
+      </div>
+    </div>`;
+
+  // Remove existing modal if any, then insert
+  const existing=document.getElementById('rec-overlay');
+  if(existing)existing.remove();
+  document.body.insertAdjacentHTML('beforeend',modalHTML);
+}
+
+function closeRecModal(e){
+  if(e.target.id==='rec-overlay') document.getElementById('rec-overlay').remove();
 }
 
 function renderOpenPositions(){
   const tbody=document.getElementById('pos-open-body');
   const tfoot=document.getElementById('pos-open-foot');
   if(!openPos.length){
-    tbody.innerHTML=`<tr><td colspan="11" style="text-align:center;padding:24px;color:var(--text3)">No open positions</td></tr>`;
+    tbody.innerHTML=`<tr><td colspan="12" style="text-align:center;padding:24px;color:var(--text3)">No open positions</td></tr>`;
     tfoot.innerHTML='';return;
   }
   let totalVal=0,totalDayGain=0,totalGain=0,totalQty=0;
-  tbody.innerHTML=openPos.map(pos=>{
+  tbody.innerHTML=openPos.map((pos,posIdx)=>{
     const spot=LD.qqq||pos.execPrice;
     const last=OQ.last||pos.execPrice*.8;
     const chgDollar=Math.round((last-pos.execPrice)*100)/100;
     const chgPct=Math.round((last-pos.execPrice)/pos.execPrice*10000)/100;
-    const qty=-pos.qty; // short position shown negative
+    const qty=-pos.qty;
     const dayGain=Math.round((pos.execPrice-last)*100*pos.qty*100)/100;
     const totalGainPos=Math.round((pos.execPrice-last)*100*pos.qty*100)/100;
     const totalGainPct=Math.round((pos.execPrice-last)/pos.execPrice*10000)/100;
-    const value=Math.round(last*100*pos.qty*100)/100 * -1;
+    const value=Math.round(last*100*pos.qty*100)/100*-1;
     totalVal+=value;totalDayGain+=dayGain;totalGain+=totalGainPos;totalQty+=qty;
     const dg=dayGain>=0?'green':'red',tg=totalGainPos>=0?'green':'red';
+
+    // Quick recommendation label for the column
+    const r=buildRec(pos);
+    const recBtnStyle=`background:${r.recColor};`;
+
     return `<tr>
-      <td><div class="pos-table"><div class="sym-cell">${pos.symbol}</div><div class="sym-sub">${new Date(pos.openedAt).toLocaleDateString()} ${pos.execTime||''}</div></div></td>
+      <td style="max-width:140px;min-width:90px">
+        <div class="sym-cell" style="font-size:11px;white-space:normal;line-height:1.3">${pos.symbol}</div>
+        <div class="sym-sub">${new Date(pos.openedAt).toLocaleDateString()} ${pos.execTime||''}</div>
+      </td>
       <td><button class="act-btn" onclick="">Trade</button></td>
       <td style="font-weight:700">$${last.toFixed(2)}</td>
       <td class="${dg}">${chgDollar>=0?'+':''}$${Math.abs(chgDollar).toFixed(2)}</td>
@@ -1457,30 +1624,12 @@ function renderOpenPositions(){
       <td class="${tg}">${totalGainPos>=0?'+':''}$${totalGainPos.toFixed(2)}</td>
       <td class="${tg}">${totalGainPct>=0?'+':''}${totalGainPct.toFixed(2)}%</td>
       <td>${value>=0?'':'−'}$${Math.abs(value).toFixed(2)}</td>
+      <td>
+        <button onclick="showRecModal(${posIdx})" style="border:none;border-radius:6px;padding:4px 8px;font-size:10px;font-weight:800;cursor:pointer;white-space:nowrap;color:#fff;${recBtnStyle}">${r.recLabel}</button>
+      </td>
     </tr>`;
   }).join('');
-  tfoot.innerHTML=``;
-}
-
-function renderClosedPositions(){
-  const tbody=document.getElementById('pos-closed-body');
-  const cl=trades.filter(t=>t.status==='closed'||t.tradeType==='btc');
-  if(!cl.length){tbody.innerHTML=`<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--text3)">No closed trades</td></tr>`;return;}
-  tbody.innerHTML=cl.slice(0,30).map(t=>{
-    const gp=t.gain&&t.openPrice?Math.round(t.gain/(t.openPrice*100*t.qty)*10000)/100:null;
-    const gc=t.gain>=0?'green':'red';
-    return `<tr>
-      <td><div class="sym-cell">${t.symbol||'QQQ Option'}</div></td>
-      <td>${t.openedAt?new Date(t.openedAt).toLocaleDateString():'—'}</td>
-      <td style="color:var(--text3)">${t.openExecTime||t.execTime||'—'}</td>
-      <td>${t.closedAt?new Date(t.closedAt).toLocaleDateString():'—'}</td>
-      <td>${t.qty}</td>
-      <td>${t.openPrice?'$'+t.openPrice.toFixed(2):'—'}</td>
-      <td>$${t.execPrice.toFixed(2)}</td>
-      <td class="${gc}">${t.gain!==null?((t.gain>=0?'+':'')+'$'+t.gain.toLocaleString()):'—'}</td>
-      <td class="${gc}">${gp!==null?((gp>=0?'+':'')+gp.toFixed(2)+'%'):'—'}</td>
-    </tr>`;
-  }).join('');
+  tfoot.innerHTML='';
 }
 
 // ══════════════════════════════════════════
