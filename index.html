@@ -235,6 +235,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       <div class="sub">87.6% win rate · $67,384 realized</div>
       <div id="mkt-row"><div class="dot dc" id="mkt-dot"></div><span id="mkt-lbl">Checking...</span></div>
     </div>
+    <button id="hdr-refresh" onclick="fetchLD()" title="Refresh data" style="background:none;border:1px solid var(--border2);border-radius:var(--rs);color:var(--text3);font-size:14px;padding:4px 8px;cursor:pointer;flex-shrink:0;line-height:1">↻</button>
     <div id="price-block">
       <div id="qqq-price">—</div>
       <div id="price-meta">
@@ -340,11 +341,14 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     </div>
     <!-- 3. QQQ Trend (SMA/EMA) -->
     <div class="row" style="flex-direction:column;align-items:flex-start;gap:8px;padding-bottom:10px">
-      <div style="display:flex;justify-content:space-between;width:100%;align-items:center">
+      <div style="display:flex;justify-content:space-between;width:100%;align-items:center;cursor:pointer" onclick="toggleTrend()">
         <span class="rl">QQQ Trend</span>
-        <span id="trend-overall" class="tag tg">Loading...</span>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span id="trend-overall" class="tag tg">Loading...</span>
+          <span id="trend-chevron" style="font-size:10px;color:var(--text3)">▼</span>
+        </div>
       </div>
-      <div id="trend-detail" style="width:100%">
+      <div id="trend-detail" style="width:100%;display:none">
         <div class="trend-block"><span class="trend-name">SMA 5 vs SMA 20</span><span class="trend-val" id="t-sma5-20">—</span><span class="trend-badge neut" id="t-sma5-20-b">—</span></div>
         <div class="trend-block"><span class="trend-name">SMA 20 vs SMA 50</span><span class="trend-val" id="t-sma20-50">—</span><span class="trend-badge neut" id="t-sma20-50-b">—</span></div>
         <div class="trend-block"><span class="trend-name">EMA 9 vs EMA 21</span><span class="trend-val" id="t-ema9-21">—</span><span class="trend-badge neut" id="t-ema9-21-b">—</span></div>
@@ -636,7 +640,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 <!-- ══ GAINS & LOSSES TAB ══ -->
 <div id="panel-gains" class="panel">
   <!-- Filters -->
-  <div class="gl-filters">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">
+    <div class="gl-filters" style="flex:1;margin-bottom:0">
     <select class="gl-sel" id="gl-period" onchange="onGLPeriod()">
       <option value="custom">Custom</option>
       <option value="today">Today</option>
@@ -647,6 +652,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     </select>
     <input class="gl-date" type="date" id="gl-from" onchange="renderGL()">
     <input class="gl-date" type="date" id="gl-to" onchange="renderGL()">
+    </div>
+    <button onclick="exportCSV()" style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--rs);color:var(--text2);font-size:11px;font-weight:700;padding:6px 10px;cursor:pointer;white-space:nowrap;flex-shrink:0">⬇ CSV</button>
   </div>
 
   <!-- Summary metrics -->
@@ -769,7 +776,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 
 <div id="toast"></div>
 <div id="ibanner">
-  <div><p><strong>Install QQQ Algo</strong>Add to home screen for offline access</p></div>
+  <div><p><strong>Install QQQ Naked Put</strong>Add to home screen for offline access</p></div>
   <button id="ibtn" onclick="installApp()">Install</button>
   <button id="idismiss" onclick="dismissInstall()">×</button>
 </div>
@@ -794,6 +801,7 @@ function showTab(id,btn){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.getElementById('panel-'+id).classList.add('active');
   btn.classList.add('active');
+  localStorage.setItem('qqq-last-tab',id);
   if(id==='stats')renderStats();
   if(id==='positions')renderPositions();
   if(id==='gains')renderGL();
@@ -1401,6 +1409,14 @@ function updateSig(){
   algoSig=sig;
 }
 
+function toggleTrend(){
+  const d=document.getElementById('trend-detail');
+  const c=document.getElementById('trend-chevron');
+  const open=d.style.display!=='none';
+  d.style.display=open?'none':'block';
+  c.textContent=open?'▼':'▲';
+}
+
 function onOv(){
   OV.vix=document.getElementById('vix-sel').value;
   OV.trend=document.getElementById('trend-sel').value;
@@ -1590,6 +1606,31 @@ function placeOrder(){
 
 function closeConf(){document.getElementById('conf-overlay').classList.remove('open');}
 function closeConfOut(e){if(e.target===document.getElementById('conf-overlay'))closeConf();}
+
+// Swipe-down to dismiss confirm modal
+(function(){
+  let sy=0,modal=null;
+  document.addEventListener('touchstart',e=>{
+    const ov=document.getElementById('conf-overlay');
+    if(!ov||!ov.classList.contains('open'))return;
+    modal=document.getElementById('conf-modal');
+    sy=e.touches[0].clientY;
+    modal.style.transition='none';
+  },{passive:true});
+  document.addEventListener('touchmove',e=>{
+    if(!modal)return;
+    const dy=Math.max(0,e.touches[0].clientY-sy);
+    modal.style.transform=`translateY(${dy}px)`;
+  },{passive:true});
+  document.addEventListener('touchend',e=>{
+    if(!modal)return;
+    const dy=e.changedTouches[0].clientY-sy;
+    modal.style.transition='';
+    modal.style.transform='';
+    if(dy>80)closeConf();
+    modal=null;
+  },{passive:true});
+})();
 
 // ══════════════════════════════════════════
 // POSITIONS TABLE
@@ -1813,7 +1854,7 @@ function renderOpenPositions(){
       <td class="${dg}">${dayGain>=0?'+':''}$${dayGain.toFixed(2)}</td>
       <td class="${tg}">${totalGainPos>=0?'+':''}$${totalGainPos.toFixed(2)}</td>
       <td class="${tg}">${totalGainPct>=0?'+':''}${totalGainPct.toFixed(2)}%</td>
-      <td>${value>=0?'':'−'}$${Math.abs(value).toFixed(2)}</td>
+      <td class="${value>=0?'green':'red'}">${value>=0?'':'−'}$${Math.abs(value).toFixed(2)}</td>
       <td>
         <button onclick="showRecModal(${posIdx})" style="border:none;border-radius:6px;padding:4px 8px;font-size:10px;font-weight:800;cursor:pointer;white-space:nowrap;color:#fff;${recBtnStyle}">${r.recLabel}</button>
       </td>
@@ -2228,6 +2269,96 @@ function renderChart(){
 }
 
 // ══════════════════════════════════════════
+// BROWSER NOTIFICATIONS
+// ══════════════════════════════════════════
+let notifPermission='default';
+async function requestNotifPermission(){
+  if(!('Notification' in window))return;
+  notifPermission=await Notification.requestPermission();
+}
+let _lastNotif={};
+function maybeNotify(key,title,body){
+  if(notifPermission!=='granted')return;
+  if(_lastNotif[key]&&Date.now()-_lastNotif[key]<300000)return; // 5 min cooldown
+  _lastNotif[key]=Date.now();
+  new Notification(title,{body,icon:'icons/icon-192.png',tag:key});
+}
+function checkPositionNotifications(){
+  if(!openPos.length)return;
+  openPos.forEach(pos=>{
+    const spot=LD.qqq||0;
+    const curBid=OQ.bid||pos.execPrice*0.5;
+    if(curBid>=pos.execPrice*2){
+      maybeNotify('stop-'+pos.id,'⚠ Stop Loss Hit — QQQ Naked Put',`$${pos.strike} Put: premium hit 2× stop. BTC now.`);
+    } else if(curBid<=pos.execPrice*0.15){
+      maybeNotify('target-'+pos.id,'✓ Profit Target Reached — QQQ Naked Put',`$${pos.strike} Put: 85% decay captured. Consider closing.`);
+    } else if(spot-pos.strike<=3&&spot-pos.strike>=0){
+      maybeNotify('near-'+pos.id,'⚠ Near Strike — QQQ Naked Put',`QQQ $${spot.toFixed(2)} — only ${(spot-pos.strike).toFixed(1)}pts above $${pos.strike} strike.`);
+    }
+  });
+}
+
+// ══════════════════════════════════════════
+// CSV EXPORT
+// ══════════════════════════════════════════
+function exportCSV(){
+  const from=document.getElementById('gl-from').value;
+  const to=document.getElementById('gl-to').value;
+  let cl=trades.filter(t=>t.status==='closed'||t.tradeType==='btc');
+  if(from)cl=cl.filter(t=>t.closedAt&&t.closedAt>=from);
+  if(to)cl=cl.filter(t=>t.closedAt&&t.closedAt<=to+'T23:59:59');
+  const hist=getHistoricalTrades().filter(t=>{
+    if(from&&t.dateClosed<from)return false;
+    if(to&&t.dateClosed>to)return false;
+    return true;
+  });
+  const rows=[['Symbol','Qty','Date Added','Cost/Share','Total Cost','Date Closed','Price/Share','Proceeds','Gain','Term','Lot Selection']];
+  cl.forEach(t=>{
+    rows.push([t.symbol||'QQQ Option',t.qty,
+      t.closedAt?new Date(t.closedAt).toLocaleDateString():'',
+      t.execPrice||'',Math.round((t.execPrice||0)*100*t.qty*100)/100,
+      t.openedAt?new Date(t.openedAt).toLocaleDateString():'',
+      t.openPrice||'',t.openPrice?Math.round(t.openPrice*100*t.qty*100)/100:'',
+      t.gain||0,'Short','FIFO']);
+  });
+  hist.forEach(t=>{
+    rows.push([t.symbol,t.qty,t.dateAdded,t.costShare,t.totalCost,t.dateClosed,t.priceShare,t.proceeds,t.gain,t.term,t.lotSel]);
+  });
+  const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`qqq-trades-${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+  toast('CSV downloaded ✓');
+}
+
+// ══════════════════════════════════════════
+// SWIPE TO SWITCH TABS
+// ══════════════════════════════════════════
+(function(){
+  const tabOrder=['signal','order','record','positions','gains','entry','exit','stats'];
+  let tx=0,ty=0;
+  const content=document.getElementById('content');
+  content.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;ty=e.touches[0].clientY;},{passive:true});
+  content.addEventListener('touchend',e=>{
+    const dx=e.changedTouches[0].clientX-tx,dy=e.changedTouches[0].clientY-ty;
+    if(Math.abs(dx)<40||Math.abs(dx)<Math.abs(dy)*1.5)return;
+    const active=document.querySelector('.panel.active');
+    if(!active)return;
+    const cur=active.id.replace('panel-','');
+    const idx=tabOrder.indexOf(cur);
+    const next=dx<0?idx+1:idx-1;
+    if(next<0||next>=tabOrder.length)return;
+    const id=tabOrder[next];
+    const btn=document.querySelector(`.tb[onclick*="'${id}'"]`);
+    if(btn)showTab(id,btn);
+    // Scroll tab bar to show active tab
+    btn&&btn.scrollIntoView({inline:'center',behavior:'smooth'});
+  },{passive:true});
+})();
+
+// ══════════════════════════════════════════
 // TOAST / PWA
 // ══════════════════════════════════════════
 function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2500);}
@@ -2247,11 +2378,15 @@ window.addEventListener('load',()=>{
   const now=new Date();
   document.getElementById('gl-from').value=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-01';
   document.getElementById('gl-to').value=now.toISOString().split('T')[0];
+  // Restore last active tab
+  const lastTab=localStorage.getItem('qqq-last-tab');
+  if(lastTab){const btn=document.querySelector(`.tb[onclick*="'${lastTab}'"]`);if(btn)showTab(lastTab,btn);}
   updateMktStatus();setInterval(updateMktStatus,1000);
   fetchLD();setInterval(fetchLD,300000);
   startCountdown();
   setInterval(streamTick,2000);
-  setInterval(()=>{if(openPos.length)renderPosAlert();},5000);
+  setInterval(()=>{if(openPos.length){renderPosAlert();checkPositionNotifications();}},5000);
+  requestNotifPermission();
   // Fetch news
   setTimeout(()=>fetchNews('today'),2000);
   setTimeout(()=>fetchNews('tomorrow'),5000);
