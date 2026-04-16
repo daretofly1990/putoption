@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="QQQ Algo">
+<meta name="apple-mobile-web-app-title" content="QQQ Naked Put">
 <meta name="theme-color" content="#1a1a2e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -492,28 +492,28 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div class="ot-body">
 
       <!-- Action + Qty + Expiration -->
-      <div class="og g3">
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px">
         <div class="ot-f"><div class="ot-lbl">Action</div>
-          <select style="background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:2px 6px;font-size:12px;font-weight:600;width:100%;outline:none;font-family:inherit" id="rt-action" onchange="onRT()">
+          <select style="background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:2px 6px;font-size:12px;font-weight:600;width:auto;outline:none;font-family:inherit" id="rt-action" onchange="onRT()">
             <option value="sell_open">Sell to Open</option>
             <option value="buy_close">Buy to Close</option>
           </select>
         </div>
         <div class="ot-f"><div class="ot-lbl">Quantity</div>
-          <input style="background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:2px 6px;font-size:12px;font-weight:600;width:100%;outline:none;font-family:inherit;-moz-appearance:textfield" type="number" id="rt-qty" value="15" min="1" step="1" oninput="onRT()" onfocus="this.select()">
+          <input style="background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:2px 6px;font-size:12px;font-weight:600;width:6ch;outline:none;font-family:inherit;-moz-appearance:textfield" type="number" id="rt-qty" value="15" min="1" step="1" oninput="onRT()" onfocus="this.select()">
         </div>
         <div class="ot-f"><div class="ot-lbl">Expiration</div>
-          <input style="background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:2px 6px;font-size:12px;font-weight:600;width:100%;outline:none;font-family:inherit" type="date" id="rt-exp" onchange="onRT()">
+          <input style="background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:2px 6px;font-size:12px;font-weight:600;width:auto;outline:none;font-family:inherit" type="date" id="rt-exp" onchange="onRT()">
         </div>
       </div>
 
       <!-- Strike + Type -->
-      <div class="og g2">
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px">
         <div class="ot-f"><div class="ot-lbl">Strike ($)</div>
-          <input style="background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:2px 6px;font-size:12px;font-weight:600;width:100%;outline:none;font-family:inherit;-moz-appearance:textfield" type="number" id="rt-strike" placeholder="e.g. 600" step="1" oninput="onRT()" onfocus="this.select()">
+          <input style="background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:2px 6px;font-size:12px;font-weight:600;width:9ch;outline:none;font-family:inherit;-moz-appearance:textfield" type="number" id="rt-strike" placeholder="e.g. 600" step="1" oninput="onRT()" onfocus="this.select()">
         </div>
         <div class="ot-f"><div class="ot-lbl">Option type</div>
-          <select style="background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:2px 6px;font-size:12px;font-weight:600;width:100%;outline:none;font-family:inherit" id="rt-type" onchange="onRT()">
+          <select style="background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:2px 6px;font-size:12px;font-weight:600;width:auto;outline:none;font-family:inherit" id="rt-type" onchange="onRT()">
             <option value="put">Put</option>
             <option value="call">Call</option>
           </select>
@@ -521,22 +521,22 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       </div>
 
       <!-- Execution price + Date -->
-      <div class="og g2">
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px">
         <div class="ot-f"><div class="ot-lbl">Execution price ($/share)</div>
-          <input style="background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:2px 6px;font-size:12px;font-weight:600;width:100%;outline:none;font-family:inherit;-moz-appearance:textfield" type="number" id="rt-price" placeholder="e.g. 0.55" step="0.01" oninput="onRT()" onfocus="this.select()">
+          <input style="background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:2px 6px;font-size:12px;font-weight:600;width:10ch;outline:none;font-family:inherit;-moz-appearance:textfield" type="number" id="rt-price" placeholder="e.g. 0.55" step="0.01" oninput="onRT()" onfocus="this.select()">
         </div>
         <div class="ot-f"><div class="ot-lbl">Execution date</div>
-          <input style="background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:2px 6px;font-size:12px;font-weight:600;width:100%;outline:none;font-family:inherit" type="date" id="rt-date">
+          <input style="background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:2px 6px;font-size:12px;font-weight:600;width:auto;outline:none;font-family:inherit" type="date" id="rt-date">
         </div>
       </div>
 
       <!-- Execution time + Broker -->
-      <div class="og g2">
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px">
         <div class="ot-f"><div class="ot-lbl">Execution time (ET)</div>
-          <input style="background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:2px 6px;font-size:12px;font-weight:600;width:100%;outline:none;font-family:inherit" type="time" id="rt-time">
+          <input style="background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:2px 6px;font-size:12px;font-weight:600;width:auto;outline:none;font-family:inherit" type="time" id="rt-time">
         </div>
         <div class="ot-f"><div class="ot-lbl">Broker / Platform</div>
-          <select style="background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:2px 6px;font-size:12px;font-weight:600;width:100%;outline:none;font-family:inherit" id="rt-broker">
+          <select style="background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:2px 6px;font-size:12px;font-weight:600;width:auto;outline:none;font-family:inherit" id="rt-broker">
             <option value="schwab">Schwab / TD</option>
             <option value="fidelity">Fidelity</option>
             <option value="etrade">E*Trade</option>
@@ -551,7 +551,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       <!-- Notes -->
       <div class="ot-f" style="margin-bottom:14px">
         <div class="ot-lbl" style="margin-bottom:5px">Notes (optional)</div>
-        <textarea id="rt-notes" placeholder="e.g. Opened as roll from yesterday's position, unusual market conditions..." style="width:100%;background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:3px 6px;font-size:12px;font-family:inherit;resize:vertical;min-height:44px;outline:none;line-height:1.5"></textarea>
+        <textarea id="rt-notes" placeholder="e.g. Roll from yesterday, unusual conditions..." style="width:100%;background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:3px 6px;font-size:12px;font-family:inherit;resize:vertical;min-height:44px;outline:none;line-height:1.5"></textarea>
       </div>
 
       <!-- Summary row -->
