@@ -1689,7 +1689,7 @@ function buildRec(pos){
       `🎯 <strong>Profit target:</strong> BTC when est. value reaches $${targetPrice.toFixed(2)}/sh (currently $${curEst.toFixed(2)}/sh). That's +$${earlyExitPnL.toLocaleString()} on ${qty} contracts.`,
       `🛑 <strong>Hard stop:</strong> If premium hits $${stopPrice.toFixed(2)}/sh (2× your $${soldAt.toFixed(2)} sale) — BTC immediately. Est. loss at stop: -$${Math.abs(stopLossPnL).toLocaleString()}.`,
       `📊 <strong>Current unrealized:</strong> +$${unrealPnL.toLocaleString()} on ${qty} contracts. Max if expires worthless: +$${creditTotal.toLocaleString()}.`,
-      `📈 <strong>Market context:</strong> QQQ ${spot.toFixed(2)}, VIX ${vix.toFixed(1)} (${vix<15?'low — favorable':'vix>=20?elevated — widen stop watch':'normal'}), ${daysToExp.toFixed(1)} days to expiration.`
+      `📈 <strong>Market context:</strong> QQQ ${spot.toFixed(2)}, VIX ${vix.toFixed(1)} (${vix<15?'low — favorable':vix>=20?'elevated — widen stop watch':'normal'}), ${daysToExp.toFixed(1)} days to expiration.`
     ];
   }
 
