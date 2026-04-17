@@ -796,6 +796,12 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
 // ══════════════════════════════════════════
+// API KEYS — replace with your own
+// ══════════════════════════════════════════
+const TRADIER_TOKEN = 'YOUR_TRADIER_TOKEN'; // tradier.com → Settings → API Access
+const FINNHUB_TOKEN = 'YOUR_FINNHUB_TOKEN'; // finnhub.io → Dashboard → API key
+
+// ══════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════
 let LD={qqq:null,bid:null,ask:null,vix:null,ma20:null,sma5:null,sma50:null,ema9:null,ema21:null,chg:null,pmChg:null,asOf:'',ok:false};
@@ -860,8 +866,8 @@ function updateMktStatus(){
 
 // Finnhub — free, no key needed for basic quotes, CORS-friendly
 async function fetchFinnhub(symbol){
-  // Finnhub free tier: 60 calls/min, no API key for basic quote
-  const url=`https://finnhub.io/api/v1/quote?symbol=${symbol}&token=sandbox_c0sber2ad3i9hbeoog4g`;
+  if(!FINNHUB_TOKEN||FINNHUB_TOKEN==='YOUR_FINNHUB_TOKEN') throw new Error('No Finnhub token');
+  const url=`https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${FINNHUB_TOKEN}`;
   const r=await fetch(url,{signal:AbortSignal.timeout(6000)});
   if(!r.ok) throw new Error('Finnhub '+r.status);
   return await r.json();
@@ -919,6 +925,45 @@ async function fetchYahooV7(symbol){
   return result;
 }
 
+// ── Tradier — primary source ───────────────
+async function fetchTradier(){
+  if(!TRADIER_TOKEN||TRADIER_TOKEN==='YOUR_TRADIER_TOKEN') throw new Error('No Tradier token');
+  const url='https://api.tradier.com/v1/markets/quotes?symbols=QQQ,VIX&greeks=false';
+  const r=await fetch(url,{
+    headers:{'Authorization':`Bearer ${TRADIER_TOKEN}`,'Accept':'application/json'},
+    signal:AbortSignal.timeout(6000)
+  });
+  if(!r.ok) throw new Error('Tradier '+r.status);
+  const data=await r.json();
+  const quotes=data?.quotes?.quote;
+  if(!quotes) throw new Error('Tradier no quotes');
+  const arr=Array.isArray(quotes)?quotes:[quotes];
+  const qq=arr.find(q=>q.symbol==='QQQ');
+  const vi=arr.find(q=>q.symbol==='VIX');
+  if(!qq||!qq.last) throw new Error('Tradier no QQQ');
+  return {qq,vi};
+}
+
+// Tradier options chain for real bid/ask on order ticket
+let tradierOptionsCache={};
+async function fetchTradierOptions(expDate){
+  if(!TRADIER_TOKEN||TRADIER_TOKEN==='YOUR_TRADIER_TOKEN') return [];
+  const key=expDate;
+  if(tradierOptionsCache[key]&&Date.now()-tradierOptionsCache[key].ts<60000) return tradierOptionsCache[key].data;
+  try{
+    const url=`https://api.tradier.com/v1/markets/options/chains?symbol=QQQ&expiration=${expDate}&greeks=false`;
+    const r=await fetch(url,{
+      headers:{'Authorization':`Bearer ${TRADIER_TOKEN}`,'Accept':'application/json'},
+      signal:AbortSignal.timeout(8000)
+    });
+    if(!r.ok) return [];
+    const data=await r.json();
+    const opts=data?.options?.option||[];
+    tradierOptionsCache[key]={data:opts,ts:Date.now()};
+    return opts;
+  }catch{return [];}
+}
+
 // ── Main fetch orchestrator ────────────────
 let dataSource='—';
 
@@ -929,26 +974,46 @@ async function fetchLD(){
   let closes=[],sma5=0,sma20=0,sma50=0,ema9=0,ema21=0;
   let bid,ask;
 
-  // ── ATTEMPT 1: Finnhub (most reliable from GitHub Pages) ──
+  // ── ATTEMPT 1: Tradier (primary — real-time, real bid/ask) ──
   try{
-    const [qq,vi]=await Promise.all([
-      fetchFinnhub('QQQ'),
-      fetchFinnhub('VIX')
-    ]);
-    if(qq.c && qq.c>0){
-      qqq=qq.c; prevClose=qq.pc||qq.c;
-      chg=((qqq-prevClose)/prevClose*100);
-      bid=qqq-.05; ask=qqq+.05;
-      // Finnhub pre/post market
-      if(qq.pm&&qq.pm>0){extPrice=qq.pm;extLabel='PRE';isExt=true;extChg=((extPrice-prevClose)/prevClose*100);}
-      if(qq.am&&qq.am>0){extPrice=qq.am;extLabel='AH';isExt=true;extChg=((extPrice-qqq)/qqq*100);}
-      vix=vi.c||19.5;
-      pmChg=extPrice&&extLabel==='PRE'?extChg:chg;
-      dataSource='Finnhub';
+    const {qq,vi}=await fetchTradier();
+    qqq=qq.last; prevClose=qq.prevclose||qqq;
+    chg=qq.change_percentage||((qqq-prevClose)/prevClose*100);
+    bid=qq.bid||qqq-.05; ask=qq.ask||qqq+.05;
+    vix=vi?.last||19.5;
+    // Extended hours
+    if(qq.pre_market_price&&qq.pre_market_price>0){
+      extPrice=qq.pre_market_price;extLabel='PRE';isExt=true;
+      extChg=((extPrice-prevClose)/prevClose*100);
+    } else if(qq.post_market_price&&qq.post_market_price>0){
+      extPrice=qq.post_market_price;extLabel='AH';isExt=true;
+      extChg=((extPrice-qqq)/qqq*100);
     }
-  }catch(e){ console.warn('Finnhub failed:',e.message); }
+    pmChg=extPrice&&extLabel==='PRE'?extChg:chg;
+    dataSource='Tradier';
+  }catch(e){ console.warn('Tradier failed:',e.message); }
 
-  // ── ATTEMPT 2: Yahoo Finance v7 quote (fast, no history) ──
+  // ── ATTEMPT 2: Finnhub ──
+  if(!qqq){
+    try{
+      const [qq,vi]=await Promise.all([
+        fetchFinnhub('QQQ'),
+        fetchFinnhub('VIX')
+      ]);
+      if(qq.c && qq.c>0){
+        qqq=qq.c; prevClose=qq.pc||qq.c;
+        chg=((qqq-prevClose)/prevClose*100);
+        bid=qqq-.05; ask=qqq+.05;
+        if(qq.pm&&qq.pm>0){extPrice=qq.pm;extLabel='PRE';isExt=true;extChg=((extPrice-prevClose)/prevClose*100);}
+        if(qq.am&&qq.am>0){extPrice=qq.am;extLabel='AH';isExt=true;extChg=((extPrice-qqq)/qqq*100);}
+        vix=vi.c||19.5;
+        pmChg=extPrice&&extLabel==='PRE'?extChg:chg;
+        dataSource='Finnhub';
+      }
+    }catch(e){ console.warn('Finnhub failed:',e.message); }
+  }
+
+  // ── ATTEMPT 3: Yahoo Finance v7 quote ──
   if(!qqq){
     try{
       const [qq,vi]=await Promise.all([
@@ -967,7 +1032,7 @@ async function fetchLD(){
     }catch(e){ console.warn('Yahoo v7 failed:',e.message); }
   }
 
-  // ── ATTEMPT 3: Yahoo Finance v8 chart (gives history for SMAs) ──
+  // ── ATTEMPT 4: Yahoo Finance v8 chart (gives history for SMAs) ──
   if(!qqq){
     try{
       const qData=await fetchYahooChart('QQQ');
@@ -981,7 +1046,6 @@ async function fetchLD(){
       pmChg=meta.preMarketPrice?((meta.preMarketPrice-prevClose)/prevClose*100):chg;
       if(meta.postMarketPrice){extPrice=meta.postMarketPrice;extLabel='AH';isExt=true;extChg=((extPrice-qqq)/qqq*100);}
       else if(meta.preMarketPrice){extPrice=meta.preMarketPrice;extLabel='PRE';isExt=true;extChg=((extPrice-prevClose)/prevClose*100);}
-      // VIX from Yahoo
       try{
         const vData=await fetchYahooChart('%5EVIX');
         vix=vData.chart.result[0].meta.regularMarketPrice||19.5;
@@ -990,22 +1054,21 @@ async function fetchLD(){
     }catch(e){ console.warn('Yahoo v8 failed:',e.message); }
   }
 
-  // ── ATTEMPT 4: Stooq CSV (very permissive CORS) ──
+  // ── ATTEMPT 5: Stooq CSV ──
   if(!qqq){
     try{
       const sq=await fetchStooq('QQQ');
       qqq=sq.close; prevClose=sq.open||sq.close;
       chg=((qqq-prevClose)/prevClose*100);
       bid=qqq-.05; ask=qqq+.05; pmChg=chg;
-      vix=19.5; // Stooq doesn't give VIX easily
+      vix=19.5;
       dataSource='Stooq';
     }catch(e){ console.warn('Stooq failed:',e.message); }
   }
 
-  // ── FALLBACK: Use last known or hardcoded ──
+  // ── FALLBACK ──
   if(!qqq){
     if(LD.ok){
-      // Keep last known data, just update timestamp
       LD.asOf='retry in 30s';
       applyLD(); setDataStatus('error'); setTimeout(fetchLD,30000); return;
     }
@@ -1191,9 +1254,34 @@ function streamTick(){
   simOQ();renderPosAlert();renderSigPositions();
 }
 
-function simOQ(){
+async function simOQ(){
   const strike=parseFloat(document.getElementById('ot-strike').value);
-  if(!strike||!LD.qqq)return;
+  const expSel=document.getElementById('ot-exp');
+  const expDate=expSel?.value;
+  if(!strike||!LD.qqq) return;
+
+  // Try real Tradier options data first
+  if(TRADIER_TOKEN&&TRADIER_TOKEN!=='YOUR_TRADIER_TOKEN'&&expDate){
+    const chain=await fetchTradierOptions(expDate);
+    const type=document.getElementById('ot-type').value;
+    const opt=chain.find(o=>o.strike===strike&&o.option_type===type[0]); // 'p' or 'c'
+    if(opt&&opt.bid!=null){
+      const nb=opt.bid,na=opt.ask,nl=opt.last||((nb+na)/2);
+      const prev=OQ.bid;
+      OQ={bid:nb,ask:na,last:nl};
+      function flash(el,up){el.classList.remove('flash-g','flash-r');void el.offsetWidth;el.classList.add(up?'flash-g':'flash-r');}
+      if(prev!==null){flash(document.getElementById('qt-bid'),nb>=prev);flash(document.getElementById('qt-ask'),na>=prev);}
+      document.getElementById('qt-bid-v').textContent='$'+nb.toFixed(2);
+      document.getElementById('qt-bid-s').textContent='×'+(opt.bidsize||'—');
+      document.getElementById('qt-ask-v').textContent='$'+na.toFixed(2);
+      document.getElementById('qt-ask-s').textContent='×'+(opt.asksize||'—');
+      document.getElementById('qt-last-v').textContent='$'+nl.toFixed(2);
+      onTick();
+      return;
+    }
+  }
+
+  // Fallback: simulate
   const otm=Math.max(0,strike-LD.qqq);
   const base=Math.max(0.01,otm*0.11+(Math.random()*.06+.01));
   const nb=Math.round((base-.02)*100)/100,na=Math.round((base+.02)*100)/100;
