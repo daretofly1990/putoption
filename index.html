@@ -2649,12 +2649,21 @@ function exportCSV(){
 // ══════════════════════════════════════════
 (function(){
   const tabOrder=['signal','order','spreads','record','positions','gains','entry','exit','stats'];
-  let tx=0,ty=0;
+  let tx=0,ty=0,startTarget=null;
   const content=document.getElementById('content');
-  content.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;ty=e.touches[0].clientY;},{passive:true});
+  content.addEventListener('touchstart',e=>{
+    tx=e.touches[0].clientX;ty=e.touches[0].clientY;startTarget=e.target;
+  },{passive:true});
   content.addEventListener('touchend',e=>{
     const dx=e.changedTouches[0].clientX-tx,dy=e.changedTouches[0].clientY-ty;
-    if(Math.abs(dx)<40||Math.abs(dx)<Math.abs(dy)*1.5)return;
+    // Require larger swipe (80px) and strongly horizontal (4× more horizontal than vertical)
+    if(Math.abs(dx)<80||Math.abs(dx)<Math.abs(dy)*4)return;
+    // Don't switch tabs if the swipe started inside a horizontally scrollable element
+    let el=startTarget;
+    while(el&&el!==content){
+      if(el.scrollWidth>el.clientWidth+4)return;
+      el=el.parentElement;
+    }
     const active=document.querySelector('.panel.active');
     if(!active)return;
     const cur=active.id.replace('panel-','');
