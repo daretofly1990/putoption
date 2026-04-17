@@ -542,16 +542,16 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
             <div style="background:var(--bg4);border:1px solid var(--border2);border-radius:var(--rs);padding:10px 11px;font-size:14px;font-weight:600;color:var(--text2)">Put</div>
           </div>
           <div class="ot-f">
-            <div class="qt-lbl">Bid</div>
-            <div class="qt-cell" style="min-width:80px"><div class="qt-val" id="leg2-bid">—</div><div class="qt-sz" style="font-size:10px;color:var(--text3)">est.</div></div>
+            <div class="qt-lbl">Bid × size</div>
+            <div class="qt-cell" id="qt-bid2" style="min-width:80px"><div class="qt-val" id="qt-bid-v2">—</div><div class="qt-sz" id="qt-bid-s2">—</div></div>
           </div>
           <div class="ot-f">
-            <div class="qt-lbl">Ask</div>
-            <div class="qt-cell" style="min-width:80px"><div class="qt-val" id="leg2-ask">—</div><div class="qt-sz" style="font-size:10px;color:var(--text3)">est.</div></div>
+            <div class="qt-lbl">Ask × size</div>
+            <div class="qt-cell" id="qt-ask2" style="min-width:80px"><div class="qt-val" id="qt-ask-v2">—</div><div class="qt-sz" id="qt-ask-s2">—</div></div>
           </div>
           <div class="ot-f">
-            <div class="qt-lbl">Cost/sh</div>
-            <div class="qt-cell" style="min-width:70px"><div class="qt-val red" id="leg2-cost">—</div><div class="qt-sz" style="font-size:10px;color:var(--text3)">buy</div></div>
+            <div class="qt-lbl">Last</div>
+            <div class="qt-cell" id="qt-last2" style="min-width:70px"><div class="qt-val" id="qt-last-v2">—</div><div class="qt-sz" style="color:var(--text3);font-size:10px">last trade</div></div>
           </div>
         </div>
       </div>
@@ -1426,7 +1426,7 @@ function streamTick(){
     if(er)er.style.display='flex';
   }
   document.getElementById('clock-et').textContent=new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',second:'2-digit',timeZone:'America/New_York'})+' ET';
-  simOQ();renderPosAlert();renderSigPositions();
+  simOQ();if(pendingSpread)simOQ2();renderPosAlert();renderSigPositions();
 }
 
 async function simOQ(){
@@ -1469,6 +1469,48 @@ async function simOQ(){
   document.getElementById('qt-ask-s').textContent='×'+Math.floor(Math.random()*30+5);
   document.getElementById('qt-last-v').textContent='$'+OQ.last.toFixed(2);
   onTick();
+}
+
+// Real-time quote for Leg 2 (long put) when a spread is active
+let OQ2={bid:null,ask:null,last:null};
+async function simOQ2(){
+  if(!pendingSpread) return;
+  const strike=pendingSpread.longStrike;
+  const expDate=pendingSpread.expDate;
+  if(!strike||!LD.qqq) return;
+  function flash2(el,up){el.classList.remove('flash-g','flash-r');void el.offsetWidth;el.classList.add(up?'flash-g':'flash-r');}
+
+  // Try Tradier first
+  if(TRADIER_TOKEN&&TRADIER_TOKEN!=='YOUR_TRADIER_TOKEN'&&expDate){
+    const chain=await fetchTradierOptions(expDate);
+    const opt=chain.find(o=>o.strike===strike&&o.option_type==='p');
+    if(opt&&opt.bid!=null){
+      const nb=opt.bid,na=opt.ask,nl=opt.last||((nb+na)/2);
+      const prev=OQ2.bid;OQ2={bid:nb,ask:na,last:nl};
+      if(prev!==null){flash2(document.getElementById('qt-bid2'),nb>=prev);flash2(document.getElementById('qt-ask2'),na>=prev);}
+      document.getElementById('qt-bid-v2').textContent='$'+nb.toFixed(2);
+      document.getElementById('qt-bid-s2').textContent='×'+(opt.bidsize||'—');
+      document.getElementById('qt-ask-v2').textContent='$'+na.toFixed(2);
+      document.getElementById('qt-ask-s2').textContent='×'+(opt.asksize||'—');
+      document.getElementById('qt-last-v2').textContent='$'+nl.toFixed(2);
+      // Sync banner long prem
+      document.getElementById('sb-long-prem').textContent='$'+nb.toFixed(2)+'/sh';
+      return;
+    }
+  }
+
+  // Fallback: simulate using same formula as simOQ
+  const otm=Math.max(0,strike-LD.qqq);
+  const base=Math.max(0.01,otm*0.11+(Math.random()*.06+.01));
+  const nb=Math.round((base-.02)*100)/100,na=Math.round((base+.02)*100)/100;
+  const prev=OQ2.bid;OQ2={bid:nb,ask:na,last:Math.round(base*100)/100};
+  if(prev!==null){flash2(document.getElementById('qt-bid2'),nb>=prev);flash2(document.getElementById('qt-ask2'),na>=prev);}
+  document.getElementById('qt-bid-v2').textContent='$'+nb.toFixed(2);
+  document.getElementById('qt-bid-s2').textContent='×'+Math.floor(Math.random()*50+5);
+  document.getElementById('qt-ask-v2').textContent='$'+na.toFixed(2);
+  document.getElementById('qt-ask-s2').textContent='×'+Math.floor(Math.random()*30+3);
+  document.getElementById('qt-last-v2').textContent='$'+OQ2.last.toFixed(2);
+  document.getElementById('sb-long-prem').textContent='$'+nb.toFixed(2)+'/sh';
 }
 
 // ══════════════════════════════════════════
@@ -3011,9 +3053,7 @@ function applySpread(shortStrike, longStrike, credit){
   el('leg2-strike').textContent=longStrike.toFixed(1);
   el('leg2-qty').textContent=qtyVal;
   el('leg2-exp').textContent=expLbl||'—';
-  el('leg2-bid').textContent='$'+longPrem.toFixed(2);
-  el('leg2-ask').textContent='$'+(Math.round((longPrem+0.02)*100)/100).toFixed(2);
-  el('leg2-cost').textContent='$'+longPrem.toFixed(2);
+  // Leg 2 bid/ask/last populated by simOQ2() below
 
   // 6. Wire qty/exp changes to keep Leg 2 in sync
   el('ot-qty').oninput=function(){onTick();el('leg2-qty').textContent=this.value||'—';};
@@ -3032,8 +3072,8 @@ function applySpread(shortStrike, longStrike, credit){
   const sugBanner=el('sug-banner');
   if(sugBanner)sugBanner.style.display='none';
 
-  // 8. Now call simOQ + onTick — pendingSpread is already set so button is correct
-  simOQ();onTick();
+  // 8. Now call simOQ + simOQ2 + onTick — pendingSpread already set so button is correct
+  simOQ();simOQ2();onTick();
 
   toast(`Spread loaded · Short $${shortStrike} / Long $${longStrike} · $${netCredit.toFixed(2)} credit`);
 }
