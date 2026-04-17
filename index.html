@@ -460,7 +460,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       </div>
     </div>
     <div style="margin-top:10px;font-size:11px;color:var(--text3);line-height:1.5">
-      ↓ <strong style="color:var(--text2)">Leg 1 (short) is loaded below.</strong> Place it first, then return here and manually enter Leg 2 (Buy to Open $<span id="sb-long-strike2">—</span> Put) as a separate order.
+      ✅ <strong style="color:var(--gt)">Both legs are loaded below.</strong> Set your quantity, then click <strong style="color:var(--text)">Review Spread Order</strong> to place both legs at once.
     </div>
   </div>
 
@@ -1799,15 +1799,25 @@ function onTick(){
   const isSell=action==='sell_open'||action==='sell_close';
   const actionLabels={buy_open:'Buy to Open',buy_close:'Buy to Close',sell_open:'Sell to Open',sell_close:'Sell to Close'};
   const btn=document.getElementById('place-btn');
-  btn.className='place-btn '+(isSell?'btn-sell':'btn-buy');
-  btn.textContent=`${actionLabels[action]||action} — ${qty} Contract${qty!==1?'s':''}`;
-  btn.disabled=!(strike&&qty);
-  const estEl=document.getElementById('est-row');
-  if(strike&&qty&&OQ.bid){
-    const price=pt==='market'?(isSell?OQ.bid:OQ.ask):pt==='mid'?(OQ.bid+OQ.ask)/2:lim;
-    if(price>0){const total=Math.round(price*100*qty*100)/100;estEl.innerHTML=isSell?`Est. credit: <span>+$${total.toLocaleString()}</span> · $${Math.round(price*100)}/contract`:`Est. debit: <span>-$${total.toLocaleString()}</span>`;}
-    else estEl.textContent='Enter limit price';
-  } else estEl.textContent='Enter strike and quantity above';
+  btn.className='place-btn btn-sell';
+  if(pendingSpread){
+    btn.textContent=`Review Spread Order — ${qty} Contract${qty!==1?'s':''} × 2 Legs`;
+    btn.disabled=!qty;
+    const credit=pendingSpread.credit;
+    const netTotal=Math.round(credit*100*qty*100)/100;
+    const maxLoss=Math.round((pendingSpread.width-credit)*100)*qty;
+    document.getElementById('est-row').innerHTML=`Net credit: <span>+$${netTotal.toLocaleString()}</span> · Max loss: <span style="color:var(--rt)">-$${maxLoss.toLocaleString()}</span>`;
+  } else {
+    btn.className='place-btn '+(isSell?'btn-sell':'btn-buy');
+    btn.textContent=`${actionLabels[action]||action} — ${qty} Contract${qty!==1?'s':''}`;
+    btn.disabled=!(strike&&qty);
+    const estEl=document.getElementById('est-row');
+    if(strike&&qty&&OQ.bid){
+      const price=pt==='market'?(isSell?OQ.bid:OQ.ask):pt==='mid'?(OQ.bid+OQ.ask)/2:lim;
+      if(price>0){const total=Math.round(price*100*qty*100)/100;estEl.innerHTML=isSell?`Est. credit: <span>+$${total.toLocaleString()}</span> · $${Math.round(price*100)}/contract`:`Est. debit: <span>-$${total.toLocaleString()}</span>`;}
+      else estEl.textContent='Enter limit price';
+    } else estEl.textContent='Enter strike and quantity above';
+  }
 }
 
 function onPT(){
@@ -2993,7 +3003,6 @@ function applySpread(shortStrike, longStrike, credit){
   el('sb-maxloss').textContent='$'+maxLoss+'/ct';
   el('sb-be').textContent='$'+be.toFixed(2);
   el('sb-ror').textContent=ror.toFixed(1)+'%';
-  el('sb-long-strike2').textContent=longStrike.toFixed(1);
   el('spread-banner').style.display='block';
 
   // Store spread data so confirmOrd/placeOrder can use it
