@@ -116,7 +116,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 
 /* ORDER TICKET */
 .ot{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:12px}
-.ot-hdr{background:var(--bg3);padding:10px 15px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.ot-hdr{background:var(--bg3);padding:10px 15px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.ot-hdr .ot-sym{margin-left:auto}
+.add-leg-btn-hdr{background:none;border:1px solid var(--bt);border-radius:var(--rs);color:var(--bt);font-size:11px;font-weight:700;padding:3px 10px;cursor:pointer;white-space:nowrap;transition:background .15s}
+.add-leg-btn-hdr:hover{background:rgba(79,163,247,.12)}
 .ot-hdr-t{font-size:13px;font-weight:800}
 .ot-sym{font-size:12px;font-weight:800;color:var(--gt);background:var(--gbg);padding:3px 10px;border-radius:6px}
 .ot-body{padding:14px 15px}
@@ -478,7 +481,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <button class="apply-btn" onclick="applyAlgo()">Apply to Order Ticket</button>
   </div>
   <div class="ot">
-    <div class="ot-hdr"><div class="ot-hdr-t" id="ot-hdr-t">Options Order</div><div class="ot-sym">QQQ</div></div>
+    <div class="ot-hdr"><div class="ot-hdr-t" id="ot-hdr-t">Options Order</div><button class="add-leg-btn-hdr" onclick="addExtraLeg('order')">＋ Add an Option</button><div class="ot-sym">QQQ</div></div>
     <div class="ot-body">
       <!-- Shared legs grid — single-leg mode shows only row 2; spread mode shows all rows -->
       <div id="legs-grid" style="display:grid;grid-template-columns:auto 52px auto 80px 64px 88px 88px 76px;gap:8px 10px;align-items:end;margin-bottom:12px;overflow-x:auto">
@@ -533,7 +536,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 
       <!-- Extra legs (Order tab) -->
       <div id="extra-legs-order"></div>
-      <button class="add-leg-btn" onclick="addExtraLeg('order')">＋ Add an Option</button>
 
       <div class="ot-div"></div>
       <!-- Price type, limit, duration row -->
@@ -656,6 +658,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <div class="ot">
     <div class="ot-hdr">
       <div class="ot-hdr-t">Paper Trade Details</div>
+      <button class="add-leg-btn-hdr" onclick="addExtraLeg('rt')">＋ Add an Option</button>
       <div class="ot-sym">QQQ</div>
     </div>
     <div class="ot-body">
@@ -726,7 +729,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       </div>
       <!-- Extra legs (Paper Trade tab) -->
       <div id="extra-legs-rt"></div>
-      <button class="add-leg-btn" onclick="addExtraLeg('rt')">＋ Add an Option</button>
 
       <!-- Summary row -->
       <div id="rt-summary" style="display:none;background:var(--bg3);border-radius:var(--rs);padding:12px 14px;margin-bottom:14px">
