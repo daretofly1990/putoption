@@ -471,7 +471,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       </div>
     </div>
     <div style="margin-top:10px;font-size:11px;color:var(--text3);line-height:1.5">
-      ✅ <strong style="color:var(--gt)">Both legs are loaded below.</strong> Set your quantity, then click <strong style="color:var(--text)">Review Spread Order</strong> to place both legs at once.
+      ✅ <strong style="color:var(--gt)">Both legs are loaded below.</strong> Set your quantity, then click <strong style="color:var(--text)">Preview Order</strong> to place both legs at once.
     </div>
   </div>
 
@@ -563,7 +563,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       </div>
       <div class="ot-div"></div>
       <div class="est-row" id="est-row">Enter strike and quantity above</div>
-      <button class="place-btn btn-sell" id="place-btn" onclick="confirmOrd()" disabled>Review Order</button>
+      <button class="place-btn btn-sell" id="place-btn" onclick="confirmOrd()" disabled>Preview Order</button>
     </div>
   </div>
 </div>
@@ -1836,7 +1836,7 @@ function onTick(){
   const btn=document.getElementById('place-btn');
   btn.className='place-btn btn-sell';
   if(pendingSpread){
-    btn.textContent=`Review Spread Order — ${qty} Contract${qty!==1?'s':''} × 2 Legs`;
+    btn.textContent=`Preview Order — ${qty} Contract${qty!==1?'s':''} × 2 Legs`;
     btn.disabled=!qty;
     const credit=pendingSpread.credit;
     const netTotal=Math.round(credit*100*qty*100)/100;
@@ -2461,9 +2461,9 @@ function addExtraLegGrid(){
   // Label row spanning all 8 columns
   grid.appendChild(gc(`el-lbl-${id}`,
     `<span style="font-size:10px;font-weight:800;color:var(--at);text-transform:uppercase;letter-spacing:.07em">Additional Leg</span>
-     <button class="el-remove" onclick="removeExtraLegGrid(${id})" style="float:right">✕</button>`,
+     <button id="el-rm-${id}" class="el-remove" onclick="removeExtraLegGrid(${id})" style="margin-left:10px;font-weight:800;display:none">✕ Remove</button>`,
     'el-grid-lbl'));
-  grid.children[grid.children.length-1].style.cssText='grid-column:1/-1;margin-top:6px;margin-bottom:2px';
+  grid.children[grid.children.length-1].style.cssText='grid-column:1/-1;margin-top:6px;margin-bottom:2px;display:flex;align-items:center';
 
   grid.appendChild(gc(`el-act-wrap-${id}`,
     `<select class="ot-sel" id="el-act-${id}" onchange="simExtraLeg(${id})" style="width:100%">
@@ -2492,6 +2492,7 @@ function addExtraLegGrid(){
     `<div class="qt-cell"><div class="qt-val" id="el-last-v-${id}">—</div><div class="qt-sz" style="color:var(--text3);font-size:10px">last trade</div></div>`));
 
   extraOrderLegIds.push(id);
+  refreshOrderRemoveBtns();
   simExtraLeg(id);
   updateNetPrice();
 }
@@ -2501,7 +2502,17 @@ function removeExtraLegGrid(id){
     .forEach(p=>{ const e=document.getElementById(`${p}-${id}`); if(e)e.remove(); });
   delete extraLegQuotes[id];
   extraOrderLegIds = extraOrderLegIds.filter(i=>i!==id);
+  refreshOrderRemoveBtns();
   updateNetPrice();
+}
+
+// Show remove buttons on all Order-tab extra legs when there are 2+
+function refreshOrderRemoveBtns(){
+  const show = extraOrderLegIds.length >= 1;
+  extraOrderLegIds.forEach(id=>{
+    const btn = document.getElementById(`el-rm-${id}`);
+    if(btn) btn.style.display = show ? 'inline-block' : 'none';
+  });
 }
 
 // Simulate live quotes for an extra Order-tab leg (same BS logic as simOQ)
@@ -2571,9 +2582,9 @@ function addExtraLegRT(){
   div.id = `el-${id}`;
   div.style.cssText = 'margin-top:12px';
   div.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
       <div style="font-size:10px;font-weight:800;color:var(--at);text-transform:uppercase;letter-spacing:.07em">Additional Option</div>
-      <button class="el-remove" onclick="removeExtraLegRT(${id})">✕ Remove</button>
+      <button id="el-rt-rm-${id}" class="el-remove" onclick="removeExtraLegRT(${id})" style="font-weight:800;display:none">✕ Remove</button>
     </div>
     <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
       <div class="ot-f">
@@ -2609,11 +2620,25 @@ function addExtraLegRT(){
       </div>
     </div>`;
   container.appendChild(div);
+  refreshRTRemoveBtns();
 }
 
 function removeExtraLegRT(id){
   const el = document.getElementById(`el-${id}`);
   if(el) el.remove();
+  refreshRTRemoveBtns();
+}
+
+// Show remove buttons on all RT extra legs when there are 1+
+function refreshRTRemoveBtns(){
+  const container = document.getElementById('extra-legs-rt');
+  if(!container) return;
+  const legs = Array.from(container.children);
+  legs.forEach(card=>{
+    const id = card.id.replace('el-','');
+    const btn = document.getElementById(`el-rt-rm-${id}`);
+    if(btn) btn.style.display = legs.length >= 1 ? 'inline-block' : 'none';
+  });
 }
 
 function recordExtraLegs(containerId, execDate, execTime, broker, notes){
