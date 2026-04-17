@@ -1447,6 +1447,7 @@ async function fetchNews(which){
           items=rssItems.map(item=>{
             const title=item.querySelector('title')?.textContent||'';
             const pubDate=item.querySelector('pubDate')?.textContent||'';
+            const link=item.querySelector('link')?.textContent?.trim()||item.querySelector('link')?.nextSibling?.textContent?.trim()||'';
             const desc=(item.querySelector('description')?.textContent||'').replace(/<[^>]*>/g,'');
             const dateObj=pubDate?new Date(pubDate):new Date();
             const timeStr=dateObj.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:'America/New_York'})+' ET';
@@ -1463,7 +1464,7 @@ async function fetchNews(which){
             else if(txt.includes('health')||txt.includes('virus')||txt.includes('outbreak')){category='Public Health';impact='MEDIUM';}
             else if(txt.includes('liquidity')||txt.includes('money supply')||txt.includes('repo')){category='Liquidity';impact='LOW';}
             else if(txt.includes('expir')||txt.includes('gamma')||txt.includes('volatility')){category='Mkt Structure';impact='MEDIUM';}
-            return {headline:title,category,time:timeStr,impact,pubDate:dateObj.getTime()};
+            return {headline:title,category,time:timeStr,impact,pubDate:dateObj.getTime(),url:link};
           })
           .filter(item=>item.headline&&item.headline.length>10)
           .sort((a,b)=>b.pubDate-a.pubDate)
@@ -1518,7 +1519,7 @@ function renderNewsTable(tableEl,countEl,items){
         <td style="padding:10px 10px;vertical-align:top">
           <span style="display:inline-block;font-size:9px;font-weight:800;padding:3px 6px;border-radius:5px;${catStyle(item.category)};line-height:1.4;text-align:center">${item.category}</span>
         </td>
-        <td style="padding:10px 10px;vertical-align:top;font-size:13px;font-weight:600;color:var(--text);line-height:1.5">${item.headline}</td>
+        <td style="padding:10px 10px;vertical-align:top;font-size:13px;font-weight:600;line-height:1.5">${item.url?`<a href="${item.url}" target="_blank" rel="noopener noreferrer" style="color:var(--text);text-decoration:none;border-bottom:1px solid rgba(255,255,255,0.15)">${item.headline}</a>`:item.headline}</td>
         <td style="padding:10px 10px;vertical-align:top;font-size:11px;color:var(--text3);text-align:right;white-space:nowrap;font-weight:600">${item.time||'—'}</td>
       </tr>`).join('')}
     </tbody></table>`;
