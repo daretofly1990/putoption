@@ -2605,6 +2605,50 @@ function installApp(){if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.
 function dismissInstall(){document.getElementById('ibanner').classList.remove('show');}
 
 // ══════════════════════════════════════════
+// AUTO-EXPIRE POSITIONS
+// ══════════════════════════════════════════
+function expireStalePositions(){
+  const now=new Date();
+  const expired=[];
+  openPos=openPos.filter(pos=>{
+    const expDate=pos.expVal||pos.expDate;
+    if(!expDate) return true; // no date — keep
+    // Expire at 4:00 PM ET on expiration day
+    const cutoff=new Date(expDate+'T16:00:00');
+    // Convert cutoff to ET
+    const cutoffET=new Date(cutoff.toLocaleString('en-US',{timeZone:'America/New_York'}));
+    const nowET=new Date(now.toLocaleString('en-US',{timeZone:'America/New_York'}));
+    if(nowET<cutoffET) return true; // not expired yet — keep
+    expired.push(pos);
+    return false; // remove from openPos
+  });
+  if(!expired.length) return;
+  // Log each expired position as closed worthless (full profit)
+  expired.forEach(pos=>{
+    const gain=Math.round(pos.execPrice*100*pos.qty*100)/100;
+    const ct={
+      ...pos,
+      closePrice:0,
+      openPrice:pos.execPrice,
+      gain,
+      closedAt:now.toISOString(),
+      execTime:now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),
+      tradeType:'expired',
+      status:'closed',
+      note:'Expired worthless — full premium kept'
+    };
+    // Update matching trade record too
+    const ti=trades.findIndex(t=>t.id===pos.id);
+    if(ti>=0) trades[ti]={...trades[ti],...ct};
+    else trades.unshift(ct);
+    toast(`✓ $${pos.strike} Put expired worthless · +$${gain.toLocaleString()} kept`);
+  });
+  saveTrades();
+  renderPositions();
+  renderGL();
+}
+
+// ══════════════════════════════════════════
 // SPREADS TAB
 // ══════════════════════════════════════════
 
@@ -2861,7 +2905,7 @@ window.addEventListener('load',()=>{
   fetchLD();setInterval(fetchLD,300000);
   startCountdown();
   setInterval(streamTick,2000);
-  setInterval(()=>{if(openPos.length){renderPosAlert();checkPositionNotifications();}},5000);
+  setInterval(()=>{if(openPos.length){expireStalePositions();renderPosAlert();checkPositionNotifications();}},5000);
   requestNotifPermission();
   // Fetch news
   setTimeout(()=>fetchNews('today'),2000);
