@@ -472,88 +472,55 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <div class="ot">
     <div class="ot-hdr"><div class="ot-hdr-t" id="ot-hdr-t">Options Order</div><div class="ot-sym">QQQ</div></div>
     <div class="ot-body">
-      <!-- Leg 1 label (only visible in spread mode) -->
-      <div id="leg1-label" style="display:none;font-size:10px;font-weight:800;color:var(--rt);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Leg 1 — Sell to Open</div>
-      <!-- Leg row: all fields in one horizontal flex row -->
-      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;align-items:flex-end">
-        <div class="ot-f">
-          <div class="ot-lbl">Action</div>
-          <select class="ot-sel" id="ot-action" onchange="onTick()" style="width:auto">
-            <option value="buy_open">Buy to Open</option>
-            <option value="buy_close">Buy to Close</option>
-            <option value="sell_open" selected>Sell to Open</option>
-            <option value="sell_close">Sell to Close</option>
-          </select>
+      <!-- Shared legs grid — single-leg mode shows only row 2; spread mode shows all rows -->
+      <div id="legs-grid" style="display:grid;grid-template-columns:auto 52px auto 80px 64px 88px 88px 76px;gap:8px 10px;align-items:end;margin-bottom:12px;overflow-x:auto">
+
+        <!-- Column headers (always visible) -->
+        <div class="ot-lbl">Action</div>
+        <div class="ot-lbl">Qty</div>
+        <div class="ot-lbl">Expiration</div>
+        <div class="ot-lbl">Strike ($)</div>
+        <div class="ot-lbl">Type</div>
+        <div class="qt-lbl">Bid × size</div>
+        <div class="qt-lbl">Ask × size</div>
+        <div class="qt-lbl">Last</div>
+
+        <!-- Leg 1 label (spread mode only) — spans all 8 cols -->
+        <div id="leg1-label" style="display:none;grid-column:1/-1;font-size:10px;font-weight:800;color:var(--rt);text-transform:uppercase;letter-spacing:.07em;margin-top:4px">Leg 1 — Sell to Open</div>
+
+        <!-- Leg 1 fields -->
+        <div><select class="ot-sel" id="ot-action" onchange="onTick()" style="width:100%">
+          <option value="buy_open">Buy to Open</option>
+          <option value="buy_close">Buy to Close</option>
+          <option value="sell_open" selected>Sell to Open</option>
+          <option value="sell_close">Sell to Close</option>
+        </select></div>
+        <div><input class="ot-in" type="number" id="ot-qty" value="15" min="1" step="1" oninput="onTick()" onfocus="this.select()" style="width:100%"></div>
+        <div><select class="ot-sel" id="ot-exp" onchange="onTick()" style="width:100%"></select></div>
+        <div><input class="ot-in" type="number" id="ot-strike" placeholder="600" step="5" oninput="onTick();simOQ()" onfocus="this.select()" style="width:100%"></div>
+        <div><select class="ot-sel" id="ot-type" onchange="onTick()" style="width:100%">
+          <option value="put">Put</option>
+          <option value="call">Call</option>
+        </select></div>
+        <div class="qt-cell" id="qt-bid"><div class="qt-val" id="qt-bid-v">—</div><div class="qt-sz" id="qt-bid-s">—</div></div>
+        <div class="qt-cell" id="qt-ask"><div class="qt-val" id="qt-ask-v">—</div><div class="qt-sz" id="qt-ask-s">—</div></div>
+        <div class="qt-cell" id="qt-last"><div class="qt-val" id="qt-last-v">—</div><div class="qt-sz" style="color:var(--text3);font-size:10px">last trade</div></div>
+
+        <!-- Leg 2 label — spans all 8 cols, spread mode only -->
+        <div id="leg2-label" style="display:none;grid-column:1/-1;font-size:10px;font-weight:800;color:var(--bt);text-transform:uppercase;letter-spacing:.07em;margin-top:4px">Leg 2 — Buy to Open</div>
+
+        <!-- Leg 2 fields (spread mode only, read-only) -->
+        <div id="leg2-row" style="display:contents">
+          <div style="display:none" id="l2-action"><div style="background:var(--bg4);border:1px solid var(--border2);border-radius:var(--rs);padding:10px 11px;font-size:13px;font-weight:600;color:var(--bt);white-space:nowrap">Buy to Open</div></div>
+          <div style="display:none" id="l2-qty"><div id="leg2-qty" style="background:var(--bg4);border:1px solid var(--border2);border-radius:var(--rs);padding:10px 11px;font-size:14px;font-weight:600;color:var(--text2);text-align:center">—</div></div>
+          <div style="display:none" id="l2-exp"><div id="leg2-exp" style="background:var(--bg4);border:1px solid var(--border2);border-radius:var(--rs);padding:10px 11px;font-size:13px;font-weight:600;color:var(--text2);white-space:nowrap">—</div></div>
+          <div style="display:none" id="l2-strike"><div id="leg2-strike" style="background:var(--bg4);border:1px solid var(--border2);border-radius:var(--rs);padding:10px 11px;font-size:14px;font-weight:600;color:var(--text2);text-align:center">—</div></div>
+          <div style="display:none" id="l2-type"><div style="background:var(--bg4);border:1px solid var(--border2);border-radius:var(--rs);padding:10px 11px;font-size:14px;font-weight:600;color:var(--text2)">Put</div></div>
+          <div style="display:none" id="l2-bid"><div class="qt-cell" id="qt-bid2"><div class="qt-val" id="qt-bid-v2">—</div><div class="qt-sz" id="qt-bid-s2">—</div></div></div>
+          <div style="display:none" id="l2-ask"><div class="qt-cell" id="qt-ask2"><div class="qt-val" id="qt-ask-v2">—</div><div class="qt-sz" id="qt-ask-s2">—</div></div></div>
+          <div style="display:none" id="l2-last"><div class="qt-cell" id="qt-last2"><div class="qt-val" id="qt-last-v2">—</div><div class="qt-sz" style="color:var(--text3);font-size:10px">last trade</div></div></div>
         </div>
-        <div class="ot-f">
-          <div class="ot-lbl">Quantity</div>
-          <input class="ot-in" type="number" id="ot-qty" value="15" min="1" step="1" oninput="onTick()" onfocus="this.select()" style="width:6ch">
-        </div>
-        <div class="ot-f">
-          <div class="ot-lbl">Expiration</div>
-          <select class="ot-sel" id="ot-exp" onchange="onTick()" style="width:auto"></select>
-        </div>
-        <div class="ot-f">
-          <div class="ot-lbl">Strike ($)</div>
-          <input class="ot-in" type="number" id="ot-strike" placeholder="e.g. 600" step="5" oninput="onTick();simOQ()" onfocus="this.select()" style="width:9ch">
-        </div>
-        <div class="ot-f">
-          <div class="ot-lbl">Type</div>
-          <select class="ot-sel" id="ot-type" onchange="onTick()" style="width:auto">
-            <option value="put">Put</option>
-            <option value="call">Call</option>
-          </select>
-        </div>
-        <div class="ot-f">
-          <div class="qt-lbl">Bid × size</div>
-          <div class="qt-cell" id="qt-bid" style="min-width:80px"><div class="qt-val" id="qt-bid-v">—</div><div class="qt-sz" id="qt-bid-s">—</div></div>
-        </div>
-        <div class="ot-f">
-          <div class="qt-lbl">Ask × size</div>
-          <div class="qt-cell" id="qt-ask" style="min-width:80px"><div class="qt-val" id="qt-ask-v">—</div><div class="qt-sz" id="qt-ask-s">—</div></div>
-        </div>
-        <div class="ot-f">
-          <div class="qt-lbl">Last</div>
-          <div class="qt-cell" id="qt-last" style="min-width:70px"><div class="qt-val" id="qt-last-v">—</div><div class="qt-sz" style="color:var(--text3);font-size:10px">last trade</div></div>
-        </div>
-      </div>
-      <!-- Leg 2 row (spread mode only) -->
-      <div id="leg2-row" style="display:none;margin-bottom:12px">
-        <div style="font-size:10px;font-weight:800;color:var(--bt);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Leg 2 — Buy to Open</div>
-        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
-          <div class="ot-f">
-            <div class="ot-lbl">Action</div>
-            <div style="background:var(--bg4);border:1px solid var(--border2);border-radius:var(--rs);padding:10px 11px;font-size:14px;font-weight:600;color:var(--bt);white-space:nowrap">Buy to Open</div>
-          </div>
-          <div class="ot-f">
-            <div class="ot-lbl">Quantity</div>
-            <div id="leg2-qty" style="background:var(--bg4);border:1px solid var(--border2);border-radius:var(--rs);padding:10px 11px;font-size:14px;font-weight:600;color:var(--text2);min-width:6ch">—</div>
-          </div>
-          <div class="ot-f">
-            <div class="ot-lbl">Expiration</div>
-            <div id="leg2-exp" style="background:var(--bg4);border:1px solid var(--border2);border-radius:var(--rs);padding:10px 11px;font-size:14px;font-weight:600;color:var(--text2);white-space:nowrap">—</div>
-          </div>
-          <div class="ot-f">
-            <div class="ot-lbl">Strike ($)</div>
-            <div id="leg2-strike" style="background:var(--bg4);border:1px solid var(--border2);border-radius:var(--rs);padding:10px 11px;font-size:14px;font-weight:600;color:var(--text2);min-width:9ch">—</div>
-          </div>
-          <div class="ot-f">
-            <div class="ot-lbl">Type</div>
-            <div style="background:var(--bg4);border:1px solid var(--border2);border-radius:var(--rs);padding:10px 11px;font-size:14px;font-weight:600;color:var(--text2)">Put</div>
-          </div>
-          <div class="ot-f">
-            <div class="qt-lbl">Bid × size</div>
-            <div class="qt-cell" id="qt-bid2" style="min-width:80px"><div class="qt-val" id="qt-bid-v2">—</div><div class="qt-sz" id="qt-bid-s2">—</div></div>
-          </div>
-          <div class="ot-f">
-            <div class="qt-lbl">Ask × size</div>
-            <div class="qt-cell" id="qt-ask2" style="min-width:80px"><div class="qt-val" id="qt-ask-v2">—</div><div class="qt-sz" id="qt-ask-s2">—</div></div>
-          </div>
-          <div class="ot-f">
-            <div class="qt-lbl">Last</div>
-            <div class="qt-cell" id="qt-last2" style="min-width:70px"><div class="qt-val" id="qt-last-v2">—</div><div class="qt-sz" style="color:var(--text3);font-size:10px">last trade</div></div>
-          </div>
-        </div>
+
       </div>
       <div class="ot-div"></div>
       <!-- Price type, limit, duration row -->
@@ -3045,15 +3012,17 @@ function applySpread(shortStrike, longStrike, credit){
     }
   }
 
-  // 5. Update order ticket header and show Leg 2 row
+  // 5. Update order ticket header and show Leg 2 cells
   const qtyVal=el('ot-qty')?.value||'—';
   el('ot-hdr-t').textContent='Options Order — Credit Spread';
   el('leg1-label').style.display='block';
-  el('leg2-row').style.display='block';
+  el('leg2-label').style.display='block';
+  ['l2-action','l2-qty','l2-exp','l2-strike','l2-type','l2-bid','l2-ask','l2-last'].forEach(id=>{
+    const d=el(id);if(d)d.style.display='block';
+  });
   el('leg2-strike').textContent=longStrike.toFixed(1);
   el('leg2-qty').textContent=qtyVal;
   el('leg2-exp').textContent=expLbl||'—';
-  // Leg 2 bid/ask/last populated by simOQ2() below
 
   // 6. Wire qty/exp changes to keep Leg 2 in sync
   el('ot-qty').oninput=function(){onTick();el('leg2-qty').textContent=this.value||'—';};
@@ -3084,10 +3053,10 @@ function clearSpread(){
   // Reset order ticket to single-leg mode
   const hdr=document.getElementById('ot-hdr-t');
   if(hdr)hdr.textContent='Options Order';
-  const l1=document.getElementById('leg1-label');
-  if(l1)l1.style.display='none';
-  const l2=document.getElementById('leg2-row');
-  if(l2)l2.style.display='none';
+  ['leg1-label','leg2-label'].forEach(id=>{const d=document.getElementById(id);if(d)d.style.display='none';});
+  ['l2-action','l2-qty','l2-exp','l2-strike','l2-type','l2-bid','l2-ask','l2-last'].forEach(id=>{
+    const d=document.getElementById(id);if(d)d.style.display='none';
+  });
   // Restore original event handlers
   const qtyEl=document.getElementById('ot-qty');
   if(qtyEl){qtyEl.oninput=function(){onTick();};}
