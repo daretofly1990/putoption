@@ -940,7 +940,7 @@ const FINNHUB_TOKEN = 'd7gpfthr01qmqj468mp0d7gpfthr01qmqj468mpg'; // finnhub.io
 let LD={qqq:null,bid:null,ask:null,vix:null,ma20:null,sma5:null,sma50:null,ema9:null,ema21:null,chg:null,pmChg:null,asOf:'',ok:false};
 let OQ={bid:null,ask:null,last:null};
 let OV={vix:'auto',trend:'auto',news:'none',pm:'auto'};
-let trades=[],openPos=[],userRules={},pendingOrder=null,algoSig={},deferredPrompt=null;
+let trades=[],openPos=[],userRules={},pendingOrder=null,pendingSpread=null,algoSig={},deferredPrompt=null;
 let sigTimer=300,glSort={col:'dateClosed',dir:-1};
 let newsCache={today:null,tomorrow:null};
 
@@ -1796,6 +1796,38 @@ function applyAlgo(){
 }
 
 function confirmOrd(){
+  // If a spread is loaded, show spread confirmation instead
+  if(pendingSpread){
+    const qty=parseInt(document.getElementById('ot-qty').value)||0;
+    const expSel=document.getElementById('ot-exp');
+    const expVal=expSel.value,expLbl=expSel.options[expSel.selectedIndex]?.text||'';
+    if(!qty){toast('Enter quantity');return;}
+    const{shortStrike,longStrike,width,credit,shortPrem,longPrem}=pendingSpread;
+    const netCreditTotal=Math.round(credit*100*qty*100)/100;
+    const maxLossPerContract=Math.round((width-credit)*100);
+    const maxLossTotal=maxLossPerContract*qty;
+    const be=Math.round((shortStrike-credit)*100)/100;
+    const ror=Math.round((credit/(width-credit))*1000)/10;
+    const sym=`QQQ ${expLbl.replace(' (1DTE)','')} $${shortStrike}/$${longStrike} Put Spread`;
+    pendingOrder={isSpread:true,shortStrike,longStrike,width,qty,expVal,expLbl,sym,
+      ep:credit,total:netCreditTotal,maxLossPerContract,maxLossTotal,be,ror,shortPrem,longPrem,isSell:true};
+    document.getElementById('conf-title').textContent='Confirm: Put Credit Spread';
+    document.getElementById('conf-sub').textContent='Net credit spread — max loss is defined by the spread width.';
+    document.getElementById('conf-detail').innerHTML=`
+      <div class="row"><span class="rl">Symbol</span><span class="rv" style="font-size:11px">${sym}</span></div>
+      <div class="row"><span class="rl" style="color:var(--rt)">Leg 1 — Sell to Open</span><span class="rv">$${shortStrike} Put · $${shortPrem.toFixed(2)}/sh</span></div>
+      <div class="row"><span class="rl" style="color:var(--bt)">Leg 2 — Buy to Open</span><span class="rv">$${longStrike} Put · $${longPrem.toFixed(2)}/sh</span></div>
+      <div class="row"><span class="rl">Qty</span><span class="rv">${qty} contracts each leg</span></div>
+      <div class="row"><span class="rl">Net Credit</span><span class="rv green">+$${netCreditTotal.toLocaleString()} ($${credit.toFixed(2)}/sh)</span></div>
+      <div class="row"><span class="rl">Max Loss</span><span class="rv red">-$${maxLossTotal.toLocaleString()} ($${maxLossPerContract}/ct)</span></div>
+      <div class="row"><span class="rl">Break-even</span><span class="rv">$${be.toFixed(2)}</span></div>
+      <div class="row"><span class="rl">Return on Risk</span><span class="rv amber">${ror.toFixed(1)}%</span></div>`;
+    const cb=document.getElementById('conf-btn');
+    cb.className='btn-cf btn-cf-sell';
+    cb.textContent='Place Spread Order';
+    document.getElementById('conf-overlay').classList.add('open');
+    return;
+  }
   const action=document.getElementById('ot-action').value,qty=parseInt(document.getElementById('ot-qty').value)||0;
   const strike=parseFloat(document.getElementById('ot-strike').value)||0,type=document.getElementById('ot-type').value;
   const expSel=document.getElementById('ot-exp'),expVal=expSel.value,expLbl=expSel.options[expSel.selectedIndex]?.text||'';
@@ -1828,6 +1860,33 @@ function placeOrder(){
   if(!pendingOrder)return;
   const now=new Date();
   const execTime=now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+
+  // Spread order — record as single position with both legs
+  if(pendingOrder.isSpread){
+    const pos={
+      id:Date.now(),
+      symbol:pendingOrder.sym,
+      strike:pendingOrder.shortStrike,
+      longStrike:pendingOrder.longStrike,
+      spreadWidth:pendingOrder.width,
+      type:'put',
+      qty:pendingOrder.qty,
+      execPrice:pendingOrder.ep,          // net credit per share
+      maxLossPerContract:pendingOrder.maxLossPerContract,
+      expVal:pendingOrder.expVal,
+      expLbl:pendingOrder.expLbl,
+      openedAt:now.toISOString(),
+      execTime,status:'open',tradeType:'spread',
+      total:pendingOrder.total
+    };
+    openPos.push(pos);trades.unshift({...pos});
+    clearSpread();
+    saveTrades();closeConf();renderPosAlert();renderPositions();renderGL();
+    toast(`✓ Spread $${pendingOrder.shortStrike}/$${pendingOrder.longStrike} · ${pendingOrder.qty}ct · +$${pendingOrder.total.toLocaleString()} credit`);
+    pendingOrder=null;
+    return;
+  }
+
   if(pendingOrder.isSell){
     const pos={id:Date.now(),symbol:pendingOrder.sym,strike:pendingOrder.strike,type:pendingOrder.type,qty:pendingOrder.qty,execPrice:pendingOrder.ep,expVal:pendingOrder.expVal,expLbl:pendingOrder.expLbl,openedAt:now.toISOString(),execTime,status:'open',tradeType:'sto',total:pendingOrder.total};
     openPos.push(pos);trades.unshift({...pos});
@@ -2079,14 +2138,28 @@ function renderOpenPositions(){
     const r=buildRec(pos);
     const recBtnStyle=`background:${r.recColor};`;
 
+    const isSpread=pos.tradeType==='spread';
+    const symbolDisplay=isSpread
+      ?`<span style="color:var(--rt);font-size:10px;font-weight:800">SHORT</span> $${pos.strike} / <span style="color:var(--bt);font-size:10px;font-weight:800">LONG</span> $${pos.longStrike} Put`
+      :pos.symbol;
+    const subDisplay=isSpread
+      ?`${pos.qty}ct · ${pos.spreadWidth}pt spread · ${pos.expLbl||'—'}`
+      :`${new Date(pos.openedAt).toLocaleDateString()} ${pos.execTime||''}`;
+    const creditDisplay=isSpread
+      ?`<div style="font-weight:700;color:var(--gt)">$${pos.execPrice.toFixed(2)}<div style="font-size:9px;color:var(--text3);font-weight:400">net credit/sh</div></div>`
+      :`<div style="font-weight:700">$${last.toFixed(2)}</div>`;
+    const maxLossDisplay=isSpread
+      ?`<div style="color:var(--rt);font-size:11px">Max $${pos.maxLossPerContract||Math.round((pos.spreadWidth-pos.execPrice)*100)}/ct</div>`
+      :`<div class="${dg}">${chgDollar>=0?'+':''}$${Math.abs(chgDollar).toFixed(2)}</div>`;
+
     return `<tr>
       <td style="max-width:140px;min-width:90px">
-        <div class="sym-cell" style="font-size:11px;white-space:normal;line-height:1.3">${pos.symbol}</div>
-        <div class="sym-sub">${new Date(pos.openedAt).toLocaleDateString()} ${pos.execTime||''}</div>
+        <div class="sym-cell" style="font-size:11px;white-space:normal;line-height:1.4">${symbolDisplay}</div>
+        <div class="sym-sub">${subDisplay}</div>
       </td>
       <td><button class="act-btn" onclick="">Trade</button></td>
-      <td style="font-weight:700">$${last.toFixed(2)}</td>
-      <td class="${dg}">${chgDollar>=0?'+':''}$${Math.abs(chgDollar).toFixed(2)}</td>
+      <td style="font-weight:700">${creditDisplay}</td>
+      <td class="${dg}">${maxLossDisplay}</td>
       <td class="${dg}">${chgPct>=0?'+':''}${chgPct.toFixed(2)}%</td>
       <td style="font-weight:700">${qty}</td>
       <td>$${pos.execPrice.toFixed(2)}</td>
@@ -2874,6 +2947,9 @@ function applySpread(shortStrike, longStrike, credit){
   el('sb-long-strike2').textContent=longStrike.toFixed(1);
   el('spread-banner').style.display='block';
 
+  // Store spread data so confirmOrd/placeOrder can use it
+  pendingSpread={shortStrike,longStrike,width,credit:netCredit,shortPrem,longPrem,expDate,expLbl:expLblText,dte};
+
   // Hide algo suggestion banner while spread is active
   const sugBanner=el('sug-banner');
   if(sugBanner)sugBanner.style.display='none';
@@ -2883,6 +2959,7 @@ function applySpread(shortStrike, longStrike, credit){
 
 function clearSpread(){
   document.getElementById('spread-banner').style.display='none';
+  pendingSpread=null;
   renderSug();
 }
 
