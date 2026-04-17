@@ -2967,22 +2967,14 @@ function renderSpreads(){
 }
 
 function applySpread(shortStrike, longStrike, credit){
-  // Switch to Order tab
-  const btn=document.querySelector(`.tb[onclick*="'order'"]`);
-  if(btn)showTab('order',btn);
+  const el=id=>document.getElementById(id);
 
-  // Pre-fill short leg in order ticket
-  document.getElementById('ot-action').value='sell_open';
-  document.getElementById('ot-type').value='put';
-  document.getElementById('ot-strike').value=shortStrike;
-  simOQ();onTick();
-
-  // Compute spread details for the banner
+  // 1. Compute all spread details first
   const spot=LD.qqq||shortStrike+10;
   const vixVal=LD.vix||19;
-  const expSel=document.getElementById('sp-exp');
-  const expLbl=expSel?.options[expSel.selectedIndex]?.text||'';
-  const expDate=expSel?.value||'';
+  const spExpSel=document.getElementById('sp-exp');
+  const expDate=spExpSel?.value||'';
+  const expLbl=spExpSel?.options[spExpSel.selectedIndex]?.text||'';
   let dte=1;
   if(expDate){const today=new Date();today.setHours(0,0,0,0);const exp=new Date(expDate+'T16:00:00');dte=Math.max(1,Math.round((exp-today)/86400000));}
   const width=Math.round((shortStrike-longStrike)*10)/10;
@@ -2993,8 +2985,41 @@ function applySpread(shortStrike, longStrike, credit){
   const be=Math.round((shortStrike-netCredit)*100)/100;
   const ror=Math.round((netCredit/(width-netCredit))*1000)/10;
 
-  // Populate and show spread banner
-  const el=id=>document.getElementById(id);
+  // 2. Set pendingSpread BEFORE onTick() so button renders correctly
+  pendingSpread={shortStrike,longStrike,width,credit:netCredit,shortPrem,longPrem,expDate,expLbl,dte};
+
+  // 3. Switch to Order tab and pre-fill Leg 1 fields
+  const tabBtn=document.querySelector(`.tb[onclick*="'order'"]`);
+  if(tabBtn)showTab('order',tabBtn);
+  el('ot-action').value='sell_open';
+  el('ot-type').value='put';
+  el('ot-strike').value=shortStrike;
+
+  // 4. Sync Order tab expiration to match the Spreads tab expiration
+  const otExp=el('ot-exp');
+  if(otExp&&expDate){
+    for(let i=0;i<otExp.options.length;i++){
+      if(otExp.options[i].value===expDate){otExp.selectedIndex=i;break;}
+    }
+  }
+
+  // 5. Update order ticket header and show Leg 2 row
+  const qtyVal=el('ot-qty')?.value||'—';
+  el('ot-hdr-t').textContent='Options Order — Credit Spread';
+  el('leg1-label').style.display='block';
+  el('leg2-row').style.display='block';
+  el('leg2-strike').textContent=longStrike.toFixed(1);
+  el('leg2-qty').textContent=qtyVal;
+  el('leg2-exp').textContent=expLbl||'—';
+  el('leg2-bid').textContent='$'+longPrem.toFixed(2);
+  el('leg2-ask').textContent='$'+(Math.round((longPrem+0.02)*100)/100).toFixed(2);
+  el('leg2-cost').textContent='$'+longPrem.toFixed(2);
+
+  // 6. Wire qty/exp changes to keep Leg 2 in sync
+  el('ot-qty').oninput=function(){onTick();el('leg2-qty').textContent=this.value||'—';};
+  el('ot-exp').onchange=function(){onTick();const s=el('ot-exp');el('leg2-exp').textContent=s.options[s.selectedIndex]?.text||'—';};
+
+  // 7. Populate spread banner
   el('sb-short-strike').textContent='$'+shortStrike.toFixed(1)+' Put';
   el('sb-long-strike').textContent='$'+longStrike.toFixed(1)+' Put';
   el('sb-short-prem').textContent='$'+shortPrem.toFixed(2)+'/sh';
@@ -3004,37 +3029,11 @@ function applySpread(shortStrike, longStrike, credit){
   el('sb-be').textContent='$'+be.toFixed(2);
   el('sb-ror').textContent=ror.toFixed(1)+'%';
   el('spread-banner').style.display='block';
-
-  // Store spread data so confirmOrd/placeOrder can use it
-  pendingSpread={shortStrike,longStrike,width,credit:netCredit,shortPrem,longPrem,expDate,expLbl:expLblText,dte};
-
-  // Show Leg 1/Leg 2 in the order ticket
-  const expLblForTicket=expSel?.options[expSel.selectedIndex]?.text||'—';
-  const qtyVal=document.getElementById('ot-qty')?.value||'—';
-  el('ot-hdr-t').textContent='Options Order — Credit Spread';
-  el('leg1-label').style.display='block';
-  el('leg2-row').style.display='block';
-  el('leg2-strike').textContent=longStrike.toFixed(1);
-  el('leg2-qty').textContent=qtyVal;
-  el('leg2-exp').textContent=expLblForTicket;
-  el('leg2-bid').textContent='$'+longPrem.toFixed(2);
-  el('leg2-ask').textContent='$'+(Math.round((longPrem+0.02)*100)/100).toFixed(2);
-  el('leg2-cost').textContent='$'+longPrem.toFixed(2);
-
-  // Keep leg2-qty in sync with ot-qty changes
-  document.getElementById('ot-qty').oninput=function(){
-    onTick();
-    document.getElementById('leg2-qty').textContent=this.value||'—';
-  };
-  document.getElementById('ot-exp').onchange=function(){
-    onTick();
-    const s=document.getElementById('ot-exp');
-    document.getElementById('leg2-exp').textContent=s.options[s.selectedIndex]?.text||'—';
-  };
-
-  // Hide algo suggestion banner while spread is active
   const sugBanner=el('sug-banner');
   if(sugBanner)sugBanner.style.display='none';
+
+  // 8. Now call simOQ + onTick — pendingSpread is already set so button is correct
+  simOQ();onTick();
 
   toast(`Spread loaded · Short $${shortStrike} / Long $${longStrike} · $${netCredit.toFixed(2)} credit`);
 }
