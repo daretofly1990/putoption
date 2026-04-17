@@ -1789,16 +1789,22 @@ function quickClose(i){
 // ══════════════════════════════════════════
 // ORDER TICKET
 // ══════════════════════════════════════════
+function getNextTradingDays(n){
+  const days=[];
+  const et=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
+  const d=new Date(et);
+  while(days.length<n){d.setDate(d.getDate()+1);if(d.getDay()!==0&&d.getDay()!==6)days.push(new Date(d));}
+  return days;
+}
+
 function populateExp(){
   const sel=document.getElementById('ot-exp');sel.innerHTML='';
-  const et=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
-  for(let i=0;i<8;i++){
-    const d=new Date(et);d.setDate(d.getDate()+i+1);
-    if(d.getDay()===0)d.setDate(d.getDate()+1);if(d.getDay()===6)d.setDate(d.getDate()+2);
-    const lbl=d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'});
-    const opt=document.createElement('option');opt.value=d.toISOString().split('T')[0];
-    opt.textContent=lbl+(i===0?' (1DTE)':'');sel.appendChild(opt);
-  }
+  getNextTradingDays(8).forEach((d,i)=>{
+    const opt=document.createElement('option');
+    opt.value=d.toISOString().split('T')[0];
+    opt.textContent=d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'})+(i===0?' (1DTE)':'');
+    sel.appendChild(opt);
+  });
 }
 
 function onTick(){
@@ -2408,12 +2414,9 @@ function initRecordTab(){
   const now = new Date();
   document.getElementById('rt-date').value = now.toISOString().split('T')[0];
   document.getElementById('rt-time').value = now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'America/New_York'});
-  // Default expiration = tomorrow (next trading day)
-  const tomorrow = new Date(now);
-  tomorrow.setDate(tomorrow.getDate()+1);
-  if(tomorrow.getDay()===0)tomorrow.setDate(tomorrow.getDate()+1);
-  if(tomorrow.getDay()===6)tomorrow.setDate(tomorrow.getDate()+2);
-  document.getElementById('rt-exp').value = tomorrow.toISOString().split('T')[0];
+  // Default expiration = next trading day
+  const nextDay=getNextTradingDays(1)[0];
+  document.getElementById('rt-exp').value = nextDay.toISOString().split('T')[0];
   onRT();
   // If a position is already recorded, show it
   if(recordedPos) { showRTRec(); updateRTRec(); }
@@ -2813,18 +2816,14 @@ function bsApproxPut(S, K, vixVal, dte){
 
 function populateSpExp(){
   const sel=document.getElementById('sp-exp');
-  if(!sel||sel.options.length>0) return;
-  const et=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
-  for(let i=0;i<8;i++){
-    const d=new Date(et);d.setDate(d.getDate()+i+1);
-    if(d.getDay()===0)d.setDate(d.getDate()+1);
-    if(d.getDay()===6)d.setDate(d.getDate()+2);
-    const lbl=d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'});
+  if(!sel) return;
+  sel.innerHTML='';
+  getNextTradingDays(8).forEach((d,i)=>{
     const opt=document.createElement('option');
     opt.value=d.toISOString().split('T')[0];
-    opt.textContent=lbl+(i===0?' (1DTE)':'');
+    opt.textContent=d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'})+(i===0?' (1DTE)':'');
     sel.appendChild(opt);
-  }
+  });
 }
 
 function renderSpreads(){
