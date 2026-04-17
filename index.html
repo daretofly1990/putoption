@@ -201,6 +201,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .sp-table td:first-child,.sp-table td:nth-child(2){text-align:left}
 .sp-table tr:last-child td{border-bottom:none}
 .sp-table tr.sp-top{background:rgba(34,201,138,.06)}
+.sp-table tr.sp-selected{background:rgba(79,163,247,.18);outline:1px solid rgba(79,163,247,.5)}
+.sp-table tr{cursor:pointer}
 .sp-badge{font-size:9px;font-weight:800;padding:2px 5px;border-radius:4px;margin-left:4px;vertical-align:middle}
 .sp-apply{background:var(--green);color:#000;border:none;border-radius:5px;padding:4px 10px;font-size:10px;font-weight:800;cursor:pointer;white-space:nowrap}
 .sp-note{background:var(--bg3);border-radius:var(--rs);padding:12px 14px;font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:12px}
@@ -2931,7 +2933,7 @@ function renderSpreads(){
   tbody.innerHTML=top.map(sp=>{
     const isTop=topRecKeys.has(`${sp.ss}-${sp.ls}`);
     const rorColor=sp.ror>=20?'var(--gt)':sp.ror>=12?'var(--at)':'var(--rt)';
-    return `<tr class="${isTop?'sp-top':''}">
+    return `<tr class="${isTop?'sp-top':''}" onclick="selectSpreadRow(this)">`
       <td>
         <span style="font-weight:800;color:var(--bt)">$${sp.ss.toFixed(1)}</span>${isTop?'<span class="sp-badge tg">★</span>':''}
         <div style="font-size:9px;color:var(--text3);margin-top:1px">sell @ $${sp.shortPrem.toFixed(2)}</div>
@@ -2972,6 +2974,15 @@ function renderSpreads(){
       ${isRed?'<span style="color:var(--rt)">⚠ Red light: Strongly consider skipping. If trading, use very small size with wide spreads and far OTM strikes.</span>':isAmber?'<span style="color:var(--at)">⚠ Yellow light: Reduce size 30–50%. Prioritize RoR and OTM distance over credit maximization.</span>':'<span style="color:var(--gt)">✓ Green light: Standard sizing is appropriate. Focus on strikes marked ★ for the best risk/reward balance.</span>'}
     `;
   }
+}
+
+function selectSpreadRow(row){
+  const tbody=document.getElementById('sp-tbody');
+  if(!tbody)return;
+  // Deselect all rows
+  tbody.querySelectorAll('tr').forEach(r=>r.classList.remove('sp-selected'));
+  // Toggle selected on clicked row (unless the click was on the Apply button)
+  row.classList.add('sp-selected');
 }
 
 function applySpread(shortStrike, longStrike, credit){
