@@ -2471,47 +2471,53 @@ function recordTrade(){
   const notes = document.getElementById('rt-notes').value.trim();
   if(!strike||!qty||!price||!expDate){toast('Fill in all required fields');return;}
 
-  const isSell = action==='sell_open'||action==='sell_close';
+  const isOpen = action==='sell_open'||action==='buy_open';
+  const tradeType = action==='sell_open'?'sto':action==='buy_open'?'bto':action==='buy_close'?'btc':'stc';
   const expFmt = new Date(expDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'});
   const sym = `QQQ ${expFmt} $${strike} ${type.charAt(0).toUpperCase()+type.slice(1)}`;
   const total = Math.round(price*100*qty*100)/100;
 
-  if(isSell){
+  if(isOpen){
     // Record as open position
     recordedPos = {
       id: Date.now(), symbol: sym, strike, type, qty, execPrice: price,
-      expDate, expFmt, execDate, execTime, broker, notes,
-      openedAt: new Date().toISOString(), status:'open', tradeType:'sto',
+      expDate, expVal: expDate, expFmt, execDate, execTime, broker, notes,
+      openedAt: new Date().toISOString(), status:'open', tradeType,
       total, source:'recorded'
     };
-    // Also add to openPos so it shows in Positions tab
+    // Add to openPos so it shows in Positions tab
     openPos.push({...recordedPos});
     trades.unshift({...recordedPos});
     saveTrades();
+    renderPositions();
+    renderPosAlert();
     showRTRec();
     updateRTRec();
     toast(`✓ Recorded: ${sym} @ $${price.toFixed(2)}`);
   } else {
-    // BTC — find matching recorded open position
+    // Close (BTC / STC) — find matching recorded open position
     if(recordedPos && recordedPos.strike===strike){
       const gain = Math.round((recordedPos.execPrice-price)*100*qty*100)/100;
       const closed = {...recordedPos, closePrice:price, gain,
-        closedAt:new Date().toISOString(), tradeType:'btc', status:'closed'};
+        closedAt:new Date().toISOString(), tradeType, status:'closed'};
       trades.unshift(closed);
       const idx = openPos.findIndex(p=>p.id===recordedPos.id);
       if(idx>=0) openPos.splice(idx,1);
       saveTrades();
       recordedPos = null;
       document.getElementById('rt-rec-wrap').style.display='none';
-      toast(`✓ BTC recorded: ${sym} @ $${price.toFixed(2)} · P&L: ${gain>=0?'+':''}$${gain.toLocaleString()}`);
+      toast(`✓ Close recorded: ${sym} @ $${price.toFixed(2)} · P&L: ${gain>=0?'+':''}$${gain.toLocaleString()}`);
       renderPositions();
+      renderPosAlert();
     } else {
-      // Just log the BTC without a matching open
+      // Log the close without a matching open
       trades.unshift({id:Date.now(),symbol:sym,strike,type,qty,execPrice:price,
-        expDate,execDate,execTime,broker,notes,
-        closedAt:new Date().toISOString(),tradeType:'btc',status:'closed',gain:null,source:'recorded'});
+        expDate,expVal:expDate,execDate,execTime,broker,notes,
+        closedAt:new Date().toISOString(),tradeType,status:'closed',gain:null,source:'recorded'});
       saveTrades();
-      toast(`✓ BTC recorded: ${sym} @ $${price.toFixed(2)}`);
+      renderPositions();
+      renderPosAlert();
+      toast(`✓ Close recorded: ${sym} @ $${price.toFixed(2)}`);
     }
   }
 }
