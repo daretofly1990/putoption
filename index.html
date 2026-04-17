@@ -182,6 +182,30 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .gl-group-row td{font-weight:700;color:var(--text);padding:6px 8px}
 .expand-btn{background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px;padding:0 4px}
 
+/* SPREADS TAB */
+.sp-regime{border-radius:var(--r);padding:14px 16px;margin-bottom:12px;border:1.5px solid transparent}
+.sp-regime.sig-g{background:var(--gbg);border-color:rgba(34,201,138,.35)}
+.sp-regime.sig-a{background:var(--abg);border-color:rgba(255,190,61,.35)}
+.sp-regime.sig-r{background:var(--rbg);border-color:rgba(255,95,94,.35)}
+.sp-controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:flex-end}
+.sp-ctl-grp{display:flex;flex-direction:column;gap:4px}
+.sp-ctl-lbl{font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.06em}
+.sp-sel{background:var(--bg3);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:8px 10px;font-size:13px;font-weight:600;outline:none;font-family:inherit}
+.sp-sel:focus{border-color:var(--gt)}
+.sp-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:12px}
+.sp-table{width:100%;border-collapse:collapse;font-size:11px;min-width:560px}
+.sp-table th{background:var(--bg3);color:var(--text3);font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap;text-align:right;cursor:pointer}
+.sp-table th:first-child,.sp-table th:nth-child(2){text-align:left}
+.sp-table th:hover{color:var(--text)}
+.sp-table td{padding:9px 10px;border-bottom:1px solid var(--border);color:var(--text2);text-align:right;white-space:nowrap;vertical-align:middle}
+.sp-table td:first-child,.sp-table td:nth-child(2){text-align:left}
+.sp-table tr:last-child td{border-bottom:none}
+.sp-table tr.sp-top{background:rgba(34,201,138,.06)}
+.sp-badge{font-size:9px;font-weight:800;padding:2px 5px;border-radius:4px;margin-left:4px;vertical-align:middle}
+.sp-apply{background:var(--green);color:#000;border:none;border-radius:5px;padding:4px 10px;font-size:10px;font-weight:800;cursor:pointer;white-space:nowrap}
+.sp-note{background:var(--bg3);border-radius:var(--rs);padding:12px 14px;font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:12px}
+.sp-note-title{font-size:11px;font-weight:800;color:var(--text);margin-bottom:6px}
+
 /* RULES */
 .rule-block{border-left:2.5px solid var(--border2);padding:10px 12px;margin-bottom:9px;border-radius:0 var(--rs) var(--rs) 0;background:var(--bg3)}
 .rule-g{border-left-color:var(--green)}.rule-a{border-left-color:var(--amber)}.rule-r{border-left-color:var(--red)}.rule-b{border-left-color:var(--blue)}
@@ -263,6 +287,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 <div id="tabs">
   <button class="tb active" onclick="showTab('signal',this)">Signal</button>
   <button class="tb" onclick="showTab('order',this)">Order</button>
+  <button class="tb" onclick="showTab('spreads',this)">Spreads</button>
   <button class="tb" onclick="showTab('record',this)">Paper Trade</button>
   <button class="tb" onclick="showTab('positions',this)">Positions</button>
   <button class="tb" onclick="showTab('gains',this)">Gains &amp; Losses</button>
@@ -490,6 +515,85 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       <button class="place-btn btn-sell" id="place-btn" onclick="confirmOrd()" disabled>Review Order</button>
     </div>
   </div>
+</div>
+
+<!-- ══ SPREADS TAB ══ -->
+<div id="panel-spreads" class="panel">
+
+  <!-- Regime card -->
+  <div id="sp-regime-card" class="sp-regime sig-g">
+    <div class="sig-lbl"><span id="sp-regime-lbl">Analyzing...</span></div>
+    <div class="sig-title" id="sp-regime-title" style="font-size:15px;margin-bottom:6px">Loading conditions...</div>
+    <div class="sig-desc" id="sp-regime-desc" style="font-size:12px"></div>
+  </div>
+
+  <!-- Key metrics -->
+  <div class="mg4" style="grid-template-columns:repeat(4,1fr)">
+    <div class="met"><div class="ml">QQQ Price</div><div class="mv green" id="sp-qqq">—</div></div>
+    <div class="met"><div class="ml">VIX</div><div class="mv" id="sp-vix">—</div></div>
+    <div class="met"><div class="ml">Exp. Move</div><div class="mv amber" id="sp-move">—</div></div>
+    <div class="met"><div class="ml">DTE</div><div class="mv" id="sp-dte">—</div></div>
+  </div>
+
+  <!-- Controls -->
+  <div class="sp-controls">
+    <div class="sp-ctl-grp">
+      <span class="sp-ctl-lbl">Expiration</span>
+      <select class="sp-sel" id="sp-exp" onchange="renderSpreads()"></select>
+    </div>
+    <div class="sp-ctl-grp">
+      <span class="sp-ctl-lbl">Spread width</span>
+      <select class="sp-sel" id="sp-width" onchange="renderSpreads()">
+        <option value="all">All widths</option>
+        <option value="2">2 pts</option>
+        <option value="3">3 pts</option>
+        <option value="5">5 pts</option>
+        <option value="10">10 pts</option>
+      </select>
+    </div>
+    <div class="sp-ctl-grp">
+      <span class="sp-ctl-lbl">Sort by</span>
+      <select class="sp-sel" id="sp-sort" onchange="renderSpreads()">
+        <option value="ror">Return on Risk</option>
+        <option value="credit">Net Credit $</option>
+        <option value="distance">OTM Distance</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Spreads table -->
+  <p class="stitle" style="margin-bottom:8px">Put Credit Spreads <span id="sp-exp-lbl" style="text-transform:none;letter-spacing:0;font-weight:400;font-size:9px;color:var(--text3)"></span></p>
+  <div class="sp-table-wrap">
+    <table class="sp-table">
+      <thead>
+        <tr>
+          <th style="text-align:left" onclick="document.getElementById('sp-sort').value='distance';renderSpreads()">Short ↕</th>
+          <th style="text-align:left">Long</th>
+          <th>Width</th>
+          <th onclick="document.getElementById('sp-sort').value='credit';renderSpreads()">Credit ↕</th>
+          <th>Max Loss</th>
+          <th>B/E</th>
+          <th onclick="document.getElementById('sp-sort').value='ror';renderSpreads()">RoR% ↕</th>
+          <th>OTM</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="sp-tbody"><tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text3)">Switch to Spreads tab to load</td></tr></tbody>
+    </table>
+  </div>
+
+  <!-- Legend -->
+  <div class="sp-note">
+    <div class="sp-note-title">How to read this table</div>
+    <strong>Short</strong> = put you sell (collect premium) &nbsp;·&nbsp; <strong>Long</strong> = put you buy (caps your loss) &nbsp;·&nbsp; <strong>Credit</strong> = net premium kept if expires worthless &nbsp;·&nbsp; <strong>Max Loss</strong> = (width − credit) × 100 per contract &nbsp;·&nbsp; <strong>B/E</strong> = QQQ must stay above this at expiration &nbsp;·&nbsp; <strong>RoR%</strong> = credit ÷ max loss — higher is better &nbsp;·&nbsp; <strong>OTM</strong> = pts below QQQ (more = safer, less credit)
+  </div>
+
+  <!-- Analysis card -->
+  <div class="sp-note">
+    <div class="sp-note-title">Market Analysis &amp; Recommendations</div>
+    <div id="sp-analysis-body" style="color:var(--text2);font-size:12px;line-height:1.7"></div>
+  </div>
+
 </div>
 
 <!-- ══ RECORD TRADE TAB ══ -->
@@ -825,6 +929,7 @@ function showTab(id,btn){
   if(id==='gains')renderGL();
   if(id==='order')renderSug();
   if(id==='record')initRecordTab();
+  if(id==='spreads')renderSpreads();
 }
 
 // ══════════════════════════════════════════
@@ -2439,7 +2544,7 @@ function exportCSV(){
 // SWIPE TO SWITCH TABS
 // ══════════════════════════════════════════
 (function(){
-  const tabOrder=['signal','order','record','positions','gains','entry','exit','stats'];
+  const tabOrder=['signal','order','spreads','record','positions','gains','entry','exit','stats'];
   let tx=0,ty=0;
   const content=document.getElementById('content');
   content.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;ty=e.touches[0].clientY;},{passive:true});
@@ -2467,6 +2572,202 @@ function toast(msg){const el=document.getElementById('toast');el.textContent=msg
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;document.getElementById('ibanner').classList.add('show');});
 function installApp(){if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.userChoice.then(()=>{deferredPrompt=null;dismissInstall();});}}
 function dismissInstall(){document.getElementById('ibanner').classList.remove('show');}
+
+// ══════════════════════════════════════════
+// SPREADS TAB
+// ══════════════════════════════════════════
+
+// Black-Scholes put price approximation (no dividends, r≈0)
+function bsApproxPut(S, K, vixVal, dte){
+  const sigma=(vixVal/100)*Math.sqrt(Math.max(dte,0.5)/252);
+  if(sigma<=0||S<=0||K<=0) return 0.01;
+  const logSK=Math.log(S/K);
+  const d1=(logSK+0.5*sigma*sigma)/sigma;
+  const d2=d1-sigma;
+  const erfApprox=x=>{
+    const a1=0.254829592,a2=-0.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=0.3275911;
+    const t=1/(1+p*Math.abs(x));
+    const poly=t*(a1+t*(a2+t*(a3+t*(a4+t*a5))));
+    return Math.sign(x)*(1-poly*Math.exp(-x*x));
+  };
+  const N=x=>0.5*(1+erfApprox(x/Math.SQRT2));
+  const put=K*N(-d2)-S*N(-d1);
+  return Math.max(0.01,Math.round(put*100)/100);
+}
+
+function populateSpExp(){
+  const sel=document.getElementById('sp-exp');
+  if(!sel||sel.options.length>0) return;
+  const et=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
+  for(let i=0;i<8;i++){
+    const d=new Date(et);d.setDate(d.getDate()+i+1);
+    if(d.getDay()===0)d.setDate(d.getDate()+1);
+    if(d.getDay()===6)d.setDate(d.getDate()+2);
+    const lbl=d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'});
+    const opt=document.createElement('option');
+    opt.value=d.toISOString().split('T')[0];
+    opt.textContent=lbl+(i===0?' (1DTE)':'');
+    sel.appendChild(opt);
+  }
+}
+
+function renderSpreads(){
+  populateSpExp();
+  const spot=LD.qqq||(parseFloat((document.getElementById('qqq-price')||{}).textContent)||640);
+  const vixVal=LD.vix||19;
+  const expSel=document.getElementById('sp-exp');
+  const expDate=expSel?.value||'';
+  const expLblText=expSel?.options[expSel.selectedIndex]?.text||'';
+  const widthFilter=document.getElementById('sp-width')?.value||'all';
+  const sortBy=document.getElementById('sp-sort')?.value||'ror';
+
+  // DTE
+  let dte=1;
+  if(expDate){
+    const today=new Date();today.setHours(0,0,0,0);
+    const exp=new Date(expDate+'T16:00:00');
+    dte=Math.max(1,Math.round((exp-today)/86400000));
+  }
+
+  // Expected move: 1-sigma move over DTE
+  const expMove=spot*(vixVal/100)*Math.sqrt(dte/252);
+
+  // Update metrics
+  const el=id=>document.getElementById(id);
+  if(el('sp-qqq')) el('sp-qqq').textContent='$'+spot.toFixed(2);
+  if(el('sp-vix')){el('sp-vix').textContent=vixVal.toFixed(1);el('sp-vix').className='mv '+(vixVal<15?'green':vixVal<20?'amber':'red');}
+  if(el('sp-move')) el('sp-move').textContent='±$'+expMove.toFixed(2);
+  if(el('sp-dte')) el('sp-dte').textContent=dte+(dte===1?' day':' days');
+  if(el('sp-exp-lbl')) el('sp-exp-lbl').textContent='· '+expLblText+' · '+dte+' DTE';
+
+  // Market regime
+  const vix=getVL(),trend=getTR(),pm=getPM();
+  const isRed=vix==='extreme'||trend==='down'||pm==='down2'||OV.news==='major';
+  const isAmber=!isRed&&(vix==='high'||trend==='flat'||pm==='down1'||OV.news==='minor');
+  const rc=el('sp-regime-card'),rlbl=el('sp-regime-lbl'),rtitle=el('sp-regime-title'),rdesc=el('sp-regime-desc');
+  if(rc){
+    if(isRed){
+      rc.className='sp-regime sig-r';rlbl.textContent='✗ RED LIGHT';
+      rtitle.textContent='High Risk — Spreads Not Recommended';
+      rdesc.textContent='Extreme VIX or broken trend. If trading, use very wide spreads far OTM to define risk tightly.';
+    } else if(isAmber){
+      rc.className='sp-regime sig-a';rlbl.textContent='⚠ YELLOW LIGHT';
+      rtitle.textContent='Elevated Conditions — Trade Conservatively';
+      rdesc.textContent='Use wider spreads (5+ pts) with short strike ≥1× expected move OTM. Reduce size 30–50%.';
+    } else {
+      rc.className='sp-regime sig-g';rlbl.textContent='✓ GREEN LIGHT';
+      rtitle.textContent='Favorable — Standard Put Credit Spreads';
+      rdesc.textContent='Good conditions. Target short strike ~0.7–1.0× expected move OTM. Standard sizing.';
+    }
+  }
+
+  // Generate spread grid
+  // Short strikes: from spot-4 down to spot-25, step $0.50 rounded
+  const shortStrikes=[];
+  for(let d=4;d<=26;d+=0.5){
+    const k=Math.round((spot-d)*2)/2;
+    if(k>0&&!shortStrikes.find(x=>Math.abs(x-k)<0.01)) shortStrikes.push(k);
+  }
+  const widths=widthFilter==='all'?[2,3,5,10]:[parseInt(widthFilter)];
+
+  const spreads=[];
+  for(const ss of shortStrikes){
+    for(const w of widths){
+      const ls=Math.round((ss-w)*2)/2;
+      if(ls<=0)continue;
+      const shortPrem=bsApproxPut(spot,ss,vixVal,dte);
+      const longPrem=bsApproxPut(spot,ls,vixVal,dte);
+      const credit=Math.round((shortPrem-longPrem)*100)/100;
+      if(credit<0.01)continue;
+      const maxLossPerShare=Math.round((w-credit)*100)/100;
+      if(maxLossPerShare<=0)continue;
+      const maxLossPerContract=Math.round(maxLossPerShare*100);
+      const be=Math.round((ss-credit)*100)/100;
+      const ror=Math.round((credit/maxLossPerShare)*1000)/10;
+      const distPts=Math.round((spot-ss)*10)/10;
+      const otmPct=Math.round((distPts/spot)*1000)/10;
+      spreads.push({ss,ls,w,credit,shortPrem,longPrem,maxLossPerContract,be,ror,distPts,otmPct});
+    }
+  }
+
+  // Sort
+  if(sortBy==='credit') spreads.sort((a,b)=>b.credit-a.credit);
+  else if(sortBy==='distance') spreads.sort((a,b)=>b.distPts-a.distPts);
+  else spreads.sort((a,b)=>b.ror-a.ror);
+
+  // Identify recommended: short strike 0.6–1.4× expected move OTM, good width for regime
+  const recommendedKeys=new Set();
+  spreads.forEach(sp=>{
+    const inRange=sp.distPts>=expMove*0.55&&sp.distPts<=expMove*1.5;
+    const goodW=isRed?sp.w>=5:isAmber?sp.w>=5:sp.w>=3&&sp.w<=5;
+    if(inRange&&goodW) recommendedKeys.add(`${sp.ss}-${sp.ls}`);
+  });
+
+  // Render table (top 40)
+  const tbody=el('sp-tbody');
+  if(!tbody)return;
+  const top=spreads.slice(0,40);
+  if(!top.length){tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text3)">No spreads found — try different settings</td></tr>';return;}
+
+  // Top 3 recommended for ★
+  const topRec=top.filter(sp=>recommendedKeys.has(`${sp.ss}-${sp.ls}`)).slice(0,3);
+  const topRecKeys=new Set(topRec.map(sp=>`${sp.ss}-${sp.ls}`));
+
+  tbody.innerHTML=top.map(sp=>{
+    const isTop=topRecKeys.has(`${sp.ss}-${sp.ls}`);
+    const rorColor=sp.ror>=20?'var(--gt)':sp.ror>=12?'var(--at)':'var(--rt)';
+    return `<tr class="${isTop?'sp-top':''}">
+      <td>
+        <span style="font-weight:800;color:var(--bt)">$${sp.ss.toFixed(1)}</span>${isTop?'<span class="sp-badge tg">★</span>':''}
+        <div style="font-size:9px;color:var(--text3);margin-top:1px">sell @ $${sp.shortPrem.toFixed(2)}</div>
+      </td>
+      <td>
+        <span style="font-weight:700">$${sp.ls.toFixed(1)}</span>
+        <div style="font-size:9px;color:var(--text3);margin-top:1px">buy @ $${sp.longPrem.toFixed(2)}</div>
+      </td>
+      <td style="text-align:center;font-weight:700">${sp.w}pt</td>
+      <td style="color:var(--gt);font-weight:800">$${sp.credit.toFixed(2)}<div style="font-size:9px;color:var(--text3);font-weight:400">$${Math.round(sp.credit*100)}/ct</div></td>
+      <td style="color:var(--rt)">$${sp.maxLossPerContract}<div style="font-size:9px;color:var(--text3)">per contract</div></td>
+      <td style="font-variant-numeric:tabular-nums">$${sp.be.toFixed(2)}</td>
+      <td style="color:${rorColor};font-weight:800">${sp.ror.toFixed(1)}%</td>
+      <td style="color:var(--text3)">${sp.distPts.toFixed(1)}pts<div style="font-size:9px">${sp.otmPct.toFixed(1)}% OTM</div></td>
+      <td><button class="sp-apply" onclick="applySpread(${sp.ss},${sp.ls},${sp.credit})">Apply</button></td>
+    </tr>`;
+  }).join('');
+
+  // Analysis card
+  const ab=el('sp-analysis-body');
+  if(ab){
+    const regime=isRed?'high-risk (Red)':isAmber?'elevated (Yellow)':'favorable (Green)';
+    const recShortLow=(spot-expMove*1.3).toFixed(0);
+    const recShortHigh=(spot-expMove*0.6).toFixed(0);
+    const recWidth=isRed?'5–10 pts':isAmber?'5 pts':'3–5 pts';
+    const recCredit=isAmber?'$0.15–$0.40':vixVal<15?'$0.10–$0.25':'$0.25–$0.65';
+    const exitRule=isAmber?'50% of max profit (faster exit)':'50% of max profit, or let expire worthless if deeply OTM';
+    const topPick=topRec[0];
+    ab.innerHTML=`
+      <strong>QQQ $${spot.toFixed(2)} · VIX ${vixVal.toFixed(1)} · ${dte}DTE Expected Move: ±$${expMove.toFixed(2)}</strong><br><br>
+      Market is in <strong>${regime}</strong> conditions. Recommendations for ${dte}-DTE put credit spreads:<br><br>
+      <span style="color:var(--gt)">▸</span> <strong>Short strike zone:</strong> $${recShortLow}–$${recShortHigh} (0.6–1.3× expected move OTM)<br>
+      <span style="color:var(--gt)">▸</span> <strong>Spread width:</strong> ${recWidth} — wider = more defined risk, less credit<br>
+      <span style="color:var(--gt)">▸</span> <strong>Target credit:</strong> ${recCredit} net per contract<br>
+      <span style="color:var(--gt)">▸</span> <strong>Break-even</strong> should be ≥$${(spot-expMove*0.8).toFixed(0)} (at least 0.8× move below spot)<br>
+      <span style="color:var(--gt)">▸</span> <strong>Exit rule:</strong> ${exitRule}<br><br>
+      ${topPick?`<strong>Top pick:</strong> Sell $${topPick.ss.toFixed(1)} / Buy $${topPick.ls.toFixed(1)} · $${topPick.w}pt wide · <span style="color:var(--gt)">$${topPick.credit.toFixed(2)} credit</span> · $${topPick.maxLossPerContract} max loss · ${topPick.ror.toFixed(1)}% RoR · B/E $${topPick.be.toFixed(2)}<br><br>`:''}
+      ${isRed?'<span style="color:var(--rt)">⚠ Red light: Strongly consider skipping. If trading, use very small size with wide spreads and far OTM strikes.</span>':isAmber?'<span style="color:var(--at)">⚠ Yellow light: Reduce size 30–50%. Prioritize RoR and OTM distance over credit maximization.</span>':'<span style="color:var(--gt)">✓ Green light: Standard sizing is appropriate. Focus on strikes marked ★ for the best risk/reward balance.</span>'}
+    `;
+  }
+}
+
+function applySpread(shortStrike, longStrike, credit){
+  const btn=document.querySelector(`.tb[onclick*="'order'"]`);
+  if(btn)showTab('order',btn);
+  document.getElementById('ot-action').value='sell_open';
+  document.getElementById('ot-type').value='put';
+  document.getElementById('ot-strike').value=shortStrike;
+  simOQ();onTick();
+  toast(`Short $${shortStrike} / Long $${longStrike} · ~$${credit.toFixed(2)}/sh credit — set qty & confirm`);
+}
 
 // ══════════════════════════════════════════
 // INIT
