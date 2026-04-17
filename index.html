@@ -263,7 +263,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 <div id="tabs">
   <button class="tb active" onclick="showTab('signal',this)">Signal</button>
   <button class="tb" onclick="showTab('order',this)">Order</button>
-  <button class="tb" onclick="showTab('record',this)">Record Trade</button>
+  <button class="tb" onclick="showTab('record',this)">Paper Trade</button>
   <button class="tb" onclick="showTab('positions',this)">Positions</button>
   <button class="tb" onclick="showTab('gains',this)">Gains &amp; Losses</button>
   <button class="tb" onclick="showTab('entry',this)">Entry Rules</button>
@@ -418,55 +418,67 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <div class="ot">
     <div class="ot-hdr"><div class="ot-hdr-t">Options Order</div><div class="ot-sym">QQQ</div></div>
     <div class="ot-body">
-      <div class="og g3">
-        <div class="ot-f"><div class="ot-lbl">Action</div>
-          <select class="ot-sel" id="ot-action" onchange="onTick()">
-            <option value="sell_open">Sell to Open</option>
+      <!-- Leg row: all fields in one horizontal flex row -->
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;align-items:flex-end">
+        <div class="ot-f">
+          <div class="ot-lbl">Action</div>
+          <select class="ot-sel" id="ot-action" onchange="onTick()" style="width:auto">
+            <option value="buy_open">Buy to Open</option>
             <option value="buy_close">Buy to Close</option>
+            <option value="sell_open" selected>Sell to Open</option>
+            <option value="sell_close">Sell to Close</option>
           </select>
         </div>
-        <div class="ot-f"><div class="ot-lbl">Quantity</div>
-          <input class="ot-in" type="number" id="ot-qty" value="15" min="1" step="1" oninput="onTick()" onfocus="this.select()">
+        <div class="ot-f">
+          <div class="ot-lbl">Quantity</div>
+          <input class="ot-in" type="number" id="ot-qty" value="15" min="1" step="1" oninput="onTick()" onfocus="this.select()" style="width:6ch">
         </div>
-        <div class="ot-f"><div class="ot-lbl">Expiration</div>
-          <select class="ot-sel" id="ot-exp" onchange="onTick()"></select>
+        <div class="ot-f">
+          <div class="ot-lbl">Expiration</div>
+          <select class="ot-sel" id="ot-exp" onchange="onTick()" style="width:auto"></select>
         </div>
-      </div>
-      <div class="og g2">
-        <div class="ot-f"><div class="ot-lbl">Strike ($)</div>
-          <input class="ot-in" type="number" id="ot-strike" placeholder="e.g. 600" step="5" oninput="onTick();simOQ()" onfocus="this.select()">
+        <div class="ot-f">
+          <div class="ot-lbl">Strike ($)</div>
+          <input class="ot-in" type="number" id="ot-strike" placeholder="e.g. 600" step="5" oninput="onTick();simOQ()" onfocus="this.select()" style="width:9ch">
         </div>
-        <div class="ot-f"><div class="ot-lbl">Type</div>
-          <select class="ot-sel" id="ot-type" onchange="onTick()">
-            <option value="put">Put</option><option value="call">Call</option>
+        <div class="ot-f">
+          <div class="ot-lbl">Type</div>
+          <select class="ot-sel" id="ot-type" onchange="onTick()" style="width:auto">
+            <option value="put">Put</option>
+            <option value="call">Call</option>
           </select>
         </div>
-      </div>
-      <div class="og g3" style="margin-bottom:0">
-        <div class="ot-f"><div class="qt-lbl">Bid × size</div>
-          <div class="qt-cell" id="qt-bid"><div class="qt-val" id="qt-bid-v">—</div><div class="qt-sz" id="qt-bid-s">—</div></div>
+        <div class="ot-f">
+          <div class="qt-lbl">Bid × size</div>
+          <div class="qt-cell" id="qt-bid" style="min-width:80px"><div class="qt-val" id="qt-bid-v">—</div><div class="qt-sz" id="qt-bid-s">—</div></div>
         </div>
-        <div class="ot-f"><div class="qt-lbl">Ask × size</div>
-          <div class="qt-cell" id="qt-ask"><div class="qt-val" id="qt-ask-v">—</div><div class="qt-sz" id="qt-ask-s">—</div></div>
+        <div class="ot-f">
+          <div class="qt-lbl">Ask × size</div>
+          <div class="qt-cell" id="qt-ask" style="min-width:80px"><div class="qt-val" id="qt-ask-v">—</div><div class="qt-sz" id="qt-ask-s">—</div></div>
         </div>
-        <div class="ot-f"><div class="qt-lbl">Last</div>
-          <div class="qt-cell" id="qt-last"><div class="qt-val" id="qt-last-v">—</div><div class="qt-sz" style="color:var(--text3);font-size:10px">last trade</div></div>
+        <div class="ot-f">
+          <div class="qt-lbl">Last</div>
+          <div class="qt-cell" id="qt-last" style="min-width:70px"><div class="qt-val" id="qt-last-v">—</div><div class="qt-sz" style="color:var(--text3);font-size:10px">last trade</div></div>
         </div>
       </div>
       <div class="ot-div"></div>
-      <div class="og g3">
-        <div class="ot-f"><div class="ot-lbl">Price type</div>
-          <select class="ot-sel" id="ot-pt" onchange="onPT()">
+      <!-- Price type, limit, duration row -->
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;align-items:flex-end">
+        <div class="ot-f">
+          <div class="ot-lbl">Price type</div>
+          <select class="ot-sel" id="ot-pt" onchange="onPT()" style="width:auto">
             <option value="limit" selected>Limit</option>
             <option value="market">Market</option>
             <option value="mid">Mid</option>
           </select>
         </div>
-        <div class="ot-f" id="ot-lim-f"><div class="ot-lbl">Limit price ($)</div>
-          <input class="ot-in" type="number" id="ot-lim" placeholder="0.00" step="0.01" oninput="onTick()" onfocus="this.select()">
+        <div class="ot-f" id="ot-lim-f">
+          <div class="ot-lbl">Limit price ($)</div>
+          <input class="ot-in" type="number" id="ot-lim" placeholder="0.00" step="0.01" oninput="onTick()" onfocus="this.select()" style="width:9ch">
         </div>
-        <div class="ot-f"><div class="ot-lbl">Duration</div>
-          <select class="ot-sel" id="ot-dur">
+        <div class="ot-f">
+          <div class="ot-lbl">Duration</div>
+          <select class="ot-sel" id="ot-dur" style="width:auto">
             <option value="day">Good for day</option>
             <option value="gtc">GTC</option>
             <option value="fok">Fill or Kill</option>
@@ -482,64 +494,66 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 
 <!-- ══ RECORD TRADE TAB ══ -->
 <div id="panel-record" class="panel">
-  <p class="stitle">Record executed trade</p>
+  <p class="stitle">Paper trade</p>
   <div style="background:var(--bbg);border:1px solid rgba(79,163,247,.3);border-radius:var(--r);padding:12px 14px;margin-bottom:14px;font-size:12px;color:var(--text2);line-height:1.6">
-    Enter the details of a trade you have <strong style="color:var(--bt)">already executed</strong> at your broker. The algorithm will monitor this position and recommend when to buy to close based on your trading rules and current market conditions.
+    Enter the details of a <strong style="color:var(--bt)">paper trade — not yet executed</strong>. The algorithm will monitor this simulated position and recommend when to close based on your trading rules and current market conditions.
   </div>
 
   <!-- RECORD FORM -->
   <div class="ot">
     <div class="ot-hdr">
-      <div class="ot-hdr-t">Trade Details</div>
+      <div class="ot-hdr-t">Paper Trade Details</div>
       <div class="ot-sym">QQQ</div>
     </div>
     <div class="ot-body">
-
-      <!-- Action + Qty + Expiration -->
-      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px">
-        <div class="ot-f"><div class="ot-lbl">Action</div>
+      <!-- Leg row -->
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;align-items:flex-end">
+        <div class="ot-f">
+          <div class="ot-lbl">Action</div>
           <select style="background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:2px 6px;font-size:12px;font-weight:600;width:auto;outline:none;font-family:inherit" id="rt-action" onchange="onRT()">
-            <option value="sell_open">Sell to Open</option>
+            <option value="buy_open">Buy to Open</option>
             <option value="buy_close">Buy to Close</option>
+            <option value="sell_open" selected>Sell to Open</option>
+            <option value="sell_close">Sell to Close</option>
           </select>
         </div>
-        <div class="ot-f"><div class="ot-lbl">Quantity</div>
+        <div class="ot-f">
+          <div class="ot-lbl">Quantity</div>
           <input style="background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:2px 6px;font-size:12px;font-weight:600;width:6ch;outline:none;font-family:inherit;-moz-appearance:textfield" type="number" id="rt-qty" value="15" min="1" step="1" oninput="onRT()" onfocus="this.select()">
         </div>
-        <div class="ot-f"><div class="ot-lbl">Expiration</div>
+        <div class="ot-f">
+          <div class="ot-lbl">Expiration</div>
           <input style="background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:2px 6px;font-size:12px;font-weight:600;width:auto;outline:none;font-family:inherit" type="date" id="rt-exp" onchange="onRT()">
         </div>
-      </div>
-
-      <!-- Strike + Type -->
-      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px">
-        <div class="ot-f"><div class="ot-lbl">Strike ($)</div>
+        <div class="ot-f">
+          <div class="ot-lbl">Strike ($)</div>
           <input style="background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:2px 6px;font-size:12px;font-weight:600;width:9ch;outline:none;font-family:inherit;-moz-appearance:textfield" type="number" id="rt-strike" placeholder="e.g. 600" step="1" oninput="onRT()" onfocus="this.select()">
         </div>
-        <div class="ot-f"><div class="ot-lbl">Option type</div>
+        <div class="ot-f">
+          <div class="ot-lbl">Option type</div>
           <select style="background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:2px 6px;font-size:12px;font-weight:600;width:auto;outline:none;font-family:inherit" id="rt-type" onchange="onRT()">
             <option value="put">Put</option>
             <option value="call">Call</option>
           </select>
         </div>
-      </div>
-
-      <!-- Execution price + Date -->
-      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px">
-        <div class="ot-f"><div class="ot-lbl">Execution price ($/share)</div>
+        <div class="ot-f">
+          <div class="ot-lbl">Execution price ($/share)</div>
           <input style="background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:2px 6px;font-size:12px;font-weight:600;width:10ch;outline:none;font-family:inherit;-moz-appearance:textfield" type="number" id="rt-price" placeholder="e.g. 0.55" step="0.01" oninput="onRT()" onfocus="this.select()">
         </div>
-        <div class="ot-f"><div class="ot-lbl">Execution date</div>
+      </div>
+      <div class="ot-div"></div>
+      <!-- Execution details row -->
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;align-items:flex-end">
+        <div class="ot-f">
+          <div class="ot-lbl">Execution date</div>
           <input style="background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:2px 6px;font-size:12px;font-weight:600;width:auto;outline:none;font-family:inherit" type="date" id="rt-date">
         </div>
-      </div>
-
-      <!-- Execution time + Broker -->
-      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px">
-        <div class="ot-f"><div class="ot-lbl">Execution time (ET)</div>
+        <div class="ot-f">
+          <div class="ot-lbl">Execution time (ET)</div>
           <input style="background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:2px 6px;font-size:12px;font-weight:600;width:auto;outline:none;font-family:inherit" type="time" id="rt-time">
         </div>
-        <div class="ot-f"><div class="ot-lbl">Broker / Platform</div>
+        <div class="ot-f">
+          <div class="ot-lbl">Broker / Platform</div>
           <select style="background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:2px 6px;font-size:12px;font-weight:600;width:auto;outline:none;font-family:inherit" id="rt-broker">
             <option value="schwab">Schwab / TD</option>
             <option value="fidelity">Fidelity</option>
@@ -551,19 +565,17 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
           </select>
         </div>
       </div>
-
+      <div class="ot-div"></div>
       <!-- Notes -->
       <div class="ot-f" style="margin-bottom:14px">
         <div class="ot-lbl" style="margin-bottom:5px">Notes (optional)</div>
         <textarea id="rt-notes" placeholder="e.g. Roll from yesterday, unusual conditions..." style="width:100%;background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:3px 6px;font-size:12px;font-family:inherit;resize:vertical;min-height:44px;outline:none;line-height:1.5"></textarea>
       </div>
-
       <!-- Summary row -->
       <div id="rt-summary" style="display:none;background:var(--bg3);border-radius:var(--rs);padding:12px 14px;margin-bottom:14px">
         <div style="font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Trade summary</div>
         <div id="rt-summary-body" style="font-size:13px;color:var(--text2);line-height:1.7"></div>
       </div>
-
       <button class="place-btn" id="rt-btn" onclick="recordTrade()" disabled style="background:var(--blue);color:#fff">
         Record This Trade
       </button>
@@ -1519,10 +1531,12 @@ function populateExp(){
 function onTick(){
   const action=document.getElementById('ot-action').value,qty=parseInt(document.getElementById('ot-qty').value)||0;
   const strike=parseFloat(document.getElementById('ot-strike').value)||0,pt=document.getElementById('ot-pt').value;
-  const lim=parseFloat(document.getElementById('ot-lim').value)||0,isSell=action==='sell_open';
+  const lim=parseFloat(document.getElementById('ot-lim').value)||0;
+  const isSell=action==='sell_open'||action==='sell_close';
+  const actionLabels={buy_open:'Buy to Open',buy_close:'Buy to Close',sell_open:'Sell to Open',sell_close:'Sell to Close'};
   const btn=document.getElementById('place-btn');
   btn.className='place-btn '+(isSell?'btn-sell':'btn-buy');
-  btn.textContent=isSell?`Sell to Open — ${qty} Contract${qty!==1?'s':''}`:`Buy to Close — ${qty} Contract${qty!==1?'s':''}`;
+  btn.textContent=`${actionLabels[action]||action} — ${qty} Contract${qty!==1?'s':''}`;
   btn.disabled=!(strike&&qty);
   const estEl=document.getElementById('est-row');
   if(strike&&qty&&OQ.bid){
@@ -1564,17 +1578,18 @@ function confirmOrd(){
   const pt=document.getElementById('ot-pt').value,lim=parseFloat(document.getElementById('ot-lim').value)||0;
   const durSel=document.getElementById('ot-dur'),durLbl=durSel.options[durSel.selectedIndex].text;
   if(!strike||!qty){toast('Enter strike and quantity');return;}
-  const isSell=action==='sell_open';
+  const isSell=action==='sell_open'||action==='sell_close';
+  const actionLabels={buy_open:'Buy to Open',buy_close:'Buy to Close',sell_open:'Sell to Open',sell_close:'Sell to Close'};
   const ep=pt==='market'?(isSell?OQ.bid||.5:OQ.ask||.5):pt==='mid'?((OQ.bid+OQ.ask)/2)||lim:lim;
   if(!ep){toast('Enter limit price');return;}
   const total=Math.round(ep*100*qty*100)/100;
   const sym=`QQQ ${expLbl.replace(' (1DTE)','')} $${strike} ${type.charAt(0).toUpperCase()+type.slice(1)}`;
   pendingOrder={action,qty,strike,type,expVal,expLbl,pt,ep,total,durLbl,sym,isSell};
-  document.getElementById('conf-title').textContent=isSell?'Confirm: Sell to Open':'Confirm: Buy to Close';
-  document.getElementById('conf-sub').textContent=isSell?'You will collect premium and accept assignment risk.':'You will close your short put position.';
+  document.getElementById('conf-title').textContent=`Confirm: ${actionLabels[action]||action}`;
+  document.getElementById('conf-sub').textContent=isSell?'You will collect premium and accept assignment risk.':'You will open or close a position.';
   document.getElementById('conf-detail').innerHTML=`
     <div class="row"><span class="rl">Symbol</span><span class="rv" style="font-size:11px">${sym}</span></div>
-    <div class="row"><span class="rl">Action</span><span class="rv">${isSell?'Sell to Open':'Buy to Close'}</span></div>
+    <div class="row"><span class="rl">Action</span><span class="rv">${actionLabels[action]||action}</span></div>
     <div class="row"><span class="rl">Quantity</span><span class="rv">${qty} contracts</span></div>
     <div class="row"><span class="rl">Exec price</span><span class="rv">$${ep.toFixed(2)}/sh</span></div>
     <div class="row"><span class="rl">${isSell?'Est. credit':'Est. debit'}</span><span class="rv ${isSell?'green':'red'}">${isSell?'+':'-'}$${total.toLocaleString()}</span></div>
@@ -2056,12 +2071,11 @@ function onRT(){
   const expDate = document.getElementById('rt-exp').value;
   const type = document.getElementById('rt-type').value;
   const btn = document.getElementById('rt-btn');
-  const isSell = action==='sell_open';
+  const isSell = action==='sell_open'||action==='sell_close';
+  const actionLabels={buy_open:'Buy to Open',buy_close:'Buy to Close',sell_open:'Sell to Open',sell_close:'Sell to Close'};
 
   btn.style.background = isSell ? 'var(--red)' : 'var(--blue)';
-  btn.textContent = isSell
-    ? `Record: Sell to Open ${qty} Contract${qty!==1?'s':''}`
-    : `Record: Buy to Close ${qty} Contract${qty!==1?'s':''}`;
+  btn.textContent = `Record: ${actionLabels[action]||action} ${qty} Contract${qty!==1?'s':''}`;
   btn.disabled = !(strike && qty && price && expDate);
 
   // Show summary
@@ -2074,7 +2088,7 @@ function onRT(){
     const isBull = isSell;
     sumBody.innerHTML = `
       <div style="display:flex;justify-content:space-between"><span style="color:var(--text3)">Position</span><span style="font-weight:700">QQQ ${expFmt} $${strike} ${type.charAt(0).toUpperCase()+type.slice(1)}</span></div>
-      <div style="display:flex;justify-content:space-between"><span style="color:var(--text3)">Action</span><span style="font-weight:700;color:${isSell?'var(--rt)':'var(--bt)'}">${isSell?'Sell to Open':'Buy to Close'}</span></div>
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--text3)">Action</span><span style="font-weight:700;color:${isSell?'var(--rt)':'var(--bt)'}">${actionLabels[action]||action}</span></div>
       <div style="display:flex;justify-content:space-between"><span style="color:var(--text3)">Qty</span><span style="font-weight:700">${qty} contracts</span></div>
       <div style="display:flex;justify-content:space-between"><span style="color:var(--text3)">Exec price</span><span style="font-weight:700">$${price.toFixed(2)}/share</span></div>
       <div style="display:flex;justify-content:space-between"><span style="color:var(--text3)">${isSell?'Premium collected':'Cost'}</span><span style="font-weight:700;color:${isSell?'var(--gt)':'var(--rt)'}">${isSell?'+':'-'}$${total.toLocaleString()}</span></div>`;
@@ -2096,7 +2110,7 @@ function recordTrade(){
   const notes = document.getElementById('rt-notes').value.trim();
   if(!strike||!qty||!price||!expDate){toast('Fill in all required fields');return;}
 
-  const isSell = action==='sell_open';
+  const isSell = action==='sell_open'||action==='sell_close';
   const expFmt = new Date(expDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'});
   const sym = `QQQ ${expFmt} $${strike} ${type.charAt(0).toUpperCase()+type.slice(1)}`;
   const total = Math.round(price*100*qty*100)/100;
