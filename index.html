@@ -2933,7 +2933,7 @@ function renderSpreads(){
   tbody.innerHTML=top.map(sp=>{
     const isTop=topRecKeys.has(`${sp.ss}-${sp.ls}`);
     const rorColor=sp.ror>=20?'var(--gt)':sp.ror>=12?'var(--at)':'var(--rt)';
-    return `<tr class="${isTop?'sp-top':''}" onclick="selectSpreadRow(this)">`
+    return `<tr class="${isTop?'sp-top':''}" onclick="selectSpreadRow(this)">
       <td>
         <span style="font-weight:800;color:var(--bt)">$${sp.ss.toFixed(1)}</span>${isTop?'<span class="sp-badge tg">★</span>':''}
         <div style="font-size:9px;color:var(--text3);margin-top:1px">sell @ $${sp.shortPrem.toFixed(2)}</div>
