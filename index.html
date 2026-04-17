@@ -139,6 +139,12 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .place-btn:active{opacity:.8}.place-btn:disabled{background:var(--bg4);color:var(--text3);cursor:not-allowed}
 .btn-sell{background:var(--red);color:#fff}.btn-buy{background:var(--blue);color:#fff}
 .est-row{text-align:center;font-size:12px;color:var(--text3);margin-bottom:10px;font-weight:600}
+.add-leg-btn{width:100%;padding:10px;background:none;border:1px dashed var(--border2);border-radius:var(--r);color:var(--bt);font-size:13px;font-weight:700;cursor:pointer;margin-bottom:12px;transition:border-color .15s,background .15s}
+.add-leg-btn:hover{border-color:var(--bt);background:rgba(79,163,247,.06)}
+.extra-leg-card{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--rs);padding:12px 14px;margin-bottom:10px}
+.el-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.el-title{font-size:10px;font-weight:800;color:var(--bt);text-transform:uppercase;letter-spacing:.07em}
+.el-remove{background:none;border:1px solid var(--border2);border-radius:var(--rs);color:var(--text3);font-size:11px;padding:3px 9px;cursor:pointer}
 .est-row span{color:var(--text2);font-weight:800}
 .sug-banner{background:var(--gbg);border:1px solid rgba(34,201,138,.3);border-radius:var(--r);padding:12px 14px;margin-bottom:12px}
 .sug-lbl{font-size:10px;font-weight:800;color:var(--gt);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px}
@@ -524,6 +530,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         </div>
 
       </div>
+
+      <!-- Extra legs (Order tab) -->
+      <div id="extra-legs-order"></div>
+      <button class="add-leg-btn" onclick="addExtraLeg('order')">＋ Add an Option</button>
+
       <div class="ot-div"></div>
       <!-- Price type, limit, duration row -->
       <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;align-items:flex-end">
@@ -713,6 +724,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         <div class="ot-lbl" style="margin-bottom:5px">Notes (optional)</div>
         <textarea id="rt-notes" placeholder="e.g. Roll from yesterday, unusual conditions..." class="rule-ta" style="min-height:48px"></textarea>
       </div>
+      <!-- Extra legs (Paper Trade tab) -->
+      <div id="extra-legs-rt"></div>
+      <button class="add-leg-btn" onclick="addExtraLeg('rt')">＋ Add an Option</button>
+
       <!-- Summary row -->
       <div id="rt-summary" style="display:none;background:var(--bg3);border-radius:var(--rs);padding:12px 14px;margin-bottom:14px">
         <div style="font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Trade summary</div>
@@ -1964,6 +1979,9 @@ function placeOrder(){
     const ct={id:Date.now(),symbol:pendingOrder.sym,strike:pendingOrder.strike,type:pendingOrder.type,qty:pendingOrder.qty,execPrice:pendingOrder.ep,openPrice:match?.execPrice||null,expLbl:pendingOrder.expLbl,closedAt:now.toISOString(),execTime,openedAt:match?.openedAt||null,openExecTime:match?.execTime||null,status:'closed',tradeType:'btc',gain};
     trades.unshift(ct);if(mi>=0)openPos.splice(mi,1);
   }
+  // Record any extra legs added via "Add an Option"
+  const execDate=now.toISOString().split('T')[0];
+  recordExtraLegs('extra-legs-order', execDate, execTime, '', '');
   saveTrades();closeConf();renderPosAlert();renderPositions();renderGL();
   toast(pendingOrder.isSell?`✓ Sold ${pendingOrder.qty}× $${pendingOrder.strike} Put @ $${pendingOrder.ep.toFixed(2)}`:`✓ BTC @ $${pendingOrder.ep.toFixed(2)}`);
   pendingOrder=null;
@@ -2193,7 +2211,8 @@ function renderOpenPositions(){
     const last=OQ.last||pos.execPrice*.8;
     const chgDollar=Math.round((last-pos.execPrice)*100)/100;
     const chgPct=Math.round((last-pos.execPrice)/pos.execPrice*10000)/100;
-    const qty=-pos.qty;
+    const isLong=pos.tradeType==='bto';
+    const qty=isLong?pos.qty:-pos.qty;
     const dayGain=Math.round((pos.execPrice-last)*100*pos.qty*100)/100;
     const totalGainPos=Math.round((pos.execPrice-last)*100*pos.qty*100)/100;
     const totalGainPct=Math.round((pos.execPrice-last)/pos.execPrice*10000)/100;
@@ -2407,6 +2426,112 @@ function saveTrades(){localStorage.setItem('qqq-trades-v4',JSON.stringify(trades
 function loadTrades(){try{trades=JSON.parse(localStorage.getItem('qqq-trades-v4')||'[]');}catch{trades=[];}try{openPos=JSON.parse(localStorage.getItem('qqq-open-v4')||'[]');}catch{openPos=[];}}
 
 // ══════════════════════════════════════════
+// ADD AN OPTION — extra legs
+// ══════════════════════════════════════════
+function addExtraLeg(tab){
+  const containerId = tab==='order' ? 'extra-legs-order' : 'extra-legs-rt';
+  const container = document.getElementById(containerId);
+  const id = Date.now();
+  // Default exp = next trading day
+  const d = new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
+  do { d.setDate(d.getDate()+1); } while(d.getDay()===0||d.getDay()===6);
+  const defaultExp = d.toISOString().split('T')[0];
+  const div = document.createElement('div');
+  div.className = 'extra-leg-card';
+  div.id = `el-${id}`;
+  div.innerHTML = `
+    <div class="el-hdr">
+      <span class="el-title">Additional Option</span>
+      <button class="el-remove" onclick="removeExtraLeg(${id})">✕ Remove</button>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
+      <div class="ot-f">
+        <div class="ot-lbl">Action</div>
+        <select class="ot-sel" id="el-act-${id}" style="width:auto">
+          <option value="sell_open">Sell to Open</option>
+          <option value="buy_open">Buy to Open</option>
+          <option value="buy_close">Buy to Close</option>
+          <option value="sell_close">Sell to Close</option>
+        </select>
+      </div>
+      <div class="ot-f">
+        <div class="ot-lbl">Qty</div>
+        <input class="ot-in" type="number" id="el-qty-${id}" value="15" min="1" step="1" onfocus="this.select()" style="width:6ch">
+      </div>
+      <div class="ot-f">
+        <div class="ot-lbl">Expiration</div>
+        <input class="ot-in" type="date" id="el-exp-${id}" value="${defaultExp}" style="width:auto">
+      </div>
+      <div class="ot-f">
+        <div class="ot-lbl">Strike ($)</div>
+        <input class="ot-in" type="number" id="el-str-${id}" placeholder="600" step="1" onfocus="this.select()" style="width:9ch">
+      </div>
+      <div class="ot-f">
+        <div class="ot-lbl">Type</div>
+        <select class="ot-sel" id="el-typ-${id}" style="width:auto">
+          <option value="put">Put</option>
+          <option value="call">Call</option>
+        </select>
+      </div>
+      <div class="ot-f">
+        <div class="ot-lbl">Exec price ($/sh)</div>
+        <input class="ot-in" type="number" id="el-prc-${id}" placeholder="0.55" step="0.01" onfocus="this.select()" style="width:10ch">
+      </div>
+    </div>`;
+  container.appendChild(div);
+  renumberExtraLegs(containerId);
+}
+
+function removeExtraLeg(id){
+  const el = document.getElementById(`el-${id}`);
+  if(!el) return;
+  const container = el.parentElement;
+  el.remove();
+  renumberExtraLegs(container.id);
+}
+
+function renumberExtraLegs(containerId){
+  const container = document.getElementById(containerId);
+  if(!container) return;
+  Array.from(container.children).forEach((card,i)=>{
+    const t = card.querySelector('.el-title');
+    if(t) t.textContent = `Additional Option ${container.children.length>1?i+1:''}`.trim();
+  });
+}
+
+function recordExtraLegs(containerId, execDate, execTime, broker, notes){
+  const container = document.getElementById(containerId);
+  if(!container||!container.children.length) return;
+  const now = new Date();
+  Array.from(container.children).forEach(card=>{
+    const id = card.id.replace('el-','');
+    const action = document.getElementById(`el-act-${id}`)?.value;
+    const qty    = parseInt(document.getElementById(`el-qty-${id}`)?.value)||0;
+    const expDate= document.getElementById(`el-exp-${id}`)?.value;
+    const strike = parseFloat(document.getElementById(`el-str-${id}`)?.value)||0;
+    const type   = document.getElementById(`el-typ-${id}`)?.value||'put';
+    const price  = parseFloat(document.getElementById(`el-prc-${id}`)?.value)||0;
+    if(!strike||!qty||!price||!expDate){return;}
+    const isOpen = action==='sell_open'||action==='buy_open';
+    const tradeType = action==='sell_open'?'sto':action==='buy_open'?'bto':action==='buy_close'?'btc':'stc';
+    const expFmt = new Date(expDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'});
+    const sym = `QQQ ${expFmt} $${strike} ${type.charAt(0).toUpperCase()+type.slice(1)}`;
+    const total = Math.round(price*100*qty*100)/100;
+    if(isOpen){
+      const pos = {id:Date.now()+Math.random(),symbol:sym,strike,type,qty,execPrice:price,
+        expDate,expVal:expDate,expFmt,execDate,execTime,broker:broker||'',notes:notes||'',
+        openedAt:now.toISOString(),status:'open',tradeType,total,source:'recorded'};
+      openPos.push(pos);
+      trades.unshift({...pos});
+    } else {
+      trades.unshift({id:Date.now()+Math.random(),symbol:sym,strike,type,qty,execPrice:price,
+        expDate,expVal:expDate,execDate,execTime,broker:broker||'',notes:notes||'',
+        closedAt:now.toISOString(),tradeType,status:'closed',gain:null,source:'recorded'});
+    }
+  });
+}
+
+// ══════════════════════════════════════════
 // RECORD TRADE
 // ══════════════════════════════════════════
 let recordedPos = null;
@@ -2488,6 +2613,8 @@ function recordTrade(){
     // Add to openPos so it shows in Positions tab
     openPos.push({...recordedPos});
     trades.unshift({...recordedPos});
+    // Record any extra legs added via "Add an Option"
+    recordExtraLegs('extra-legs-rt', execDate, execTime, broker, notes);
     saveTrades();
     renderPositions();
     renderPosAlert();
