@@ -470,8 +470,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <button class="apply-btn" onclick="applyAlgo()">Apply to Order Ticket</button>
   </div>
   <div class="ot">
-    <div class="ot-hdr"><div class="ot-hdr-t">Options Order</div><div class="ot-sym">QQQ</div></div>
+    <div class="ot-hdr"><div class="ot-hdr-t" id="ot-hdr-t">Options Order</div><div class="ot-sym">QQQ</div></div>
     <div class="ot-body">
+      <!-- Leg 1 label (only visible in spread mode) -->
+      <div id="leg1-label" style="display:none;font-size:10px;font-weight:800;color:var(--rt);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Leg 1 — Sell to Open</div>
       <!-- Leg row: all fields in one horizontal flex row -->
       <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;align-items:flex-end">
         <div class="ot-f">
@@ -513,6 +515,44 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         <div class="ot-f">
           <div class="qt-lbl">Last</div>
           <div class="qt-cell" id="qt-last" style="min-width:70px"><div class="qt-val" id="qt-last-v">—</div><div class="qt-sz" style="color:var(--text3);font-size:10px">last trade</div></div>
+        </div>
+      </div>
+      <!-- Leg 2 row (spread mode only) -->
+      <div id="leg2-row" style="display:none;margin-bottom:12px">
+        <div style="font-size:10px;font-weight:800;color:var(--bt);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Leg 2 — Buy to Open</div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
+          <div class="ot-f">
+            <div class="ot-lbl">Action</div>
+            <div style="background:var(--bg4);border:1px solid var(--border2);border-radius:var(--rs);padding:10px 11px;font-size:14px;font-weight:600;color:var(--bt);white-space:nowrap">Buy to Open</div>
+          </div>
+          <div class="ot-f">
+            <div class="ot-lbl">Quantity</div>
+            <div id="leg2-qty" style="background:var(--bg4);border:1px solid var(--border2);border-radius:var(--rs);padding:10px 11px;font-size:14px;font-weight:600;color:var(--text2);min-width:6ch">—</div>
+          </div>
+          <div class="ot-f">
+            <div class="ot-lbl">Expiration</div>
+            <div id="leg2-exp" style="background:var(--bg4);border:1px solid var(--border2);border-radius:var(--rs);padding:10px 11px;font-size:14px;font-weight:600;color:var(--text2);white-space:nowrap">—</div>
+          </div>
+          <div class="ot-f">
+            <div class="ot-lbl">Strike ($)</div>
+            <div id="leg2-strike" style="background:var(--bg4);border:1px solid var(--border2);border-radius:var(--rs);padding:10px 11px;font-size:14px;font-weight:600;color:var(--text2);min-width:9ch">—</div>
+          </div>
+          <div class="ot-f">
+            <div class="ot-lbl">Type</div>
+            <div style="background:var(--bg4);border:1px solid var(--border2);border-radius:var(--rs);padding:10px 11px;font-size:14px;font-weight:600;color:var(--text2)">Put</div>
+          </div>
+          <div class="ot-f">
+            <div class="qt-lbl">Bid</div>
+            <div class="qt-cell" style="min-width:80px"><div class="qt-val" id="leg2-bid">—</div><div class="qt-sz" style="font-size:10px;color:var(--text3)">est.</div></div>
+          </div>
+          <div class="ot-f">
+            <div class="qt-lbl">Ask</div>
+            <div class="qt-cell" style="min-width:80px"><div class="qt-val" id="leg2-ask">—</div><div class="qt-sz" style="font-size:10px;color:var(--text3)">est.</div></div>
+          </div>
+          <div class="ot-f">
+            <div class="qt-lbl">Cost/sh</div>
+            <div class="qt-cell" style="min-width:70px"><div class="qt-val red" id="leg2-cost">—</div><div class="qt-sz" style="font-size:10px;color:var(--text3)">buy</div></div>
+          </div>
         </div>
       </div>
       <div class="ot-div"></div>
@@ -2959,6 +2999,30 @@ function applySpread(shortStrike, longStrike, credit){
   // Store spread data so confirmOrd/placeOrder can use it
   pendingSpread={shortStrike,longStrike,width,credit:netCredit,shortPrem,longPrem,expDate,expLbl:expLblText,dte};
 
+  // Show Leg 1/Leg 2 in the order ticket
+  const expLblForTicket=expSel?.options[expSel.selectedIndex]?.text||'—';
+  const qtyVal=document.getElementById('ot-qty')?.value||'—';
+  el('ot-hdr-t').textContent='Options Order — Credit Spread';
+  el('leg1-label').style.display='block';
+  el('leg2-row').style.display='block';
+  el('leg2-strike').textContent=longStrike.toFixed(1);
+  el('leg2-qty').textContent=qtyVal;
+  el('leg2-exp').textContent=expLblForTicket;
+  el('leg2-bid').textContent='$'+longPrem.toFixed(2);
+  el('leg2-ask').textContent='$'+(Math.round((longPrem+0.02)*100)/100).toFixed(2);
+  el('leg2-cost').textContent='$'+longPrem.toFixed(2);
+
+  // Keep leg2-qty in sync with ot-qty changes
+  document.getElementById('ot-qty').oninput=function(){
+    onTick();
+    document.getElementById('leg2-qty').textContent=this.value||'—';
+  };
+  document.getElementById('ot-exp').onchange=function(){
+    onTick();
+    const s=document.getElementById('ot-exp');
+    document.getElementById('leg2-exp').textContent=s.options[s.selectedIndex]?.text||'—';
+  };
+
   // Hide algo suggestion banner while spread is active
   const sugBanner=el('sug-banner');
   if(sugBanner)sugBanner.style.display='none';
@@ -2969,6 +3033,18 @@ function applySpread(shortStrike, longStrike, credit){
 function clearSpread(){
   document.getElementById('spread-banner').style.display='none';
   pendingSpread=null;
+  // Reset order ticket to single-leg mode
+  const hdr=document.getElementById('ot-hdr-t');
+  if(hdr)hdr.textContent='Options Order';
+  const l1=document.getElementById('leg1-label');
+  if(l1)l1.style.display='none';
+  const l2=document.getElementById('leg2-row');
+  if(l2)l2.style.display='none';
+  // Restore original event handlers
+  const qtyEl=document.getElementById('ot-qty');
+  if(qtyEl){qtyEl.oninput=function(){onTick();};}
+  const expEl=document.getElementById('ot-exp');
+  if(expEl){expEl.onchange=function(){onTick();};}
   renderSug();
 }
 
