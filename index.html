@@ -84,19 +84,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .pa-title{font-size:13px;font-weight:800;margin-bottom:4px}
 .pa-body{font-size:12px;color:var(--text2);line-height:1.5}
 
-/* DIRECT INDEX */
-#di-table tbody tr{border-bottom:1px solid var(--border)}
-#di-table tbody tr:last-child{border-bottom:none}
-#di-table tbody tr:hover{background:var(--bg3)}
-#di-table td{padding:8px 8px;vertical-align:middle}
-#di-table td:first-child{padding-left:12px;font-weight:700}
-.di-drift-pos{color:var(--rt)}.di-drift-neg{color:var(--gt)}.di-drift-ok{color:var(--text3)}
-.di-bar{height:5px;border-radius:3px;background:var(--bg4);overflow:hidden;margin-top:3px}
-.di-bar-fill{height:100%;border-radius:3px;transition:width .3s}
-.di-harvest-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px}
-.di-harvest-row:last-child{border-bottom:none}
-.di-rebal-buy{color:var(--gt);font-weight:800}.di-rebal-sell{color:var(--rt);font-weight:800}
-
 /* NEWS */
 .news-item{padding:10px 0;border-bottom:1px solid var(--border)}
 .news-item:last-child{border-bottom:none}
@@ -215,7 +202,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .sp-sel{background:var(--bg3);color:var(--text);border:1px solid var(--border2);border-radius:var(--rs);padding:8px 10px;font-size:13px;font-weight:600;outline:none;font-family:inherit}
 .sp-sel:focus{border-color:var(--gt)}
 .sp-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:12px}
-.sp-table{width:100%;border-collapse:collapse;font-size:11px;min-width:560px}
+.sp-table{width:100%;border-collapse:separate;border-spacing:0;font-size:11px;min-width:560px}
+.sp-table thead th{position:sticky;top:0;z-index:5}
 .sp-table th{background:var(--bg3);color:var(--text3);font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap;text-align:right;cursor:pointer}
 .sp-table th:first-child,.sp-table th:nth-child(2){text-align:left}
 .sp-table th:hover{color:var(--text)}
@@ -318,7 +306,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <button class="tb" onclick="showTab('entry',this)">Entry Rules</button>
   <button class="tb" onclick="showTab('exit',this)">Exit &amp; Roll</button>
   <button class="tb" onclick="showTab('stats',this)">Stats</button>
-  <button class="tb" onclick="showTab('di',this)">Direct Index</button>
 </div>
 
 <div id="content">
@@ -942,98 +929,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   </div>
 </div>
 
-<!-- ══ DIRECT INDEX TAB ══ -->
-<div id="panel-di" class="panel">
-
-  <!-- Summary metrics -->
-  <div class="mg4" id="di-metrics">
-    <div class="met"><div class="ml">Portfolio Value</div><div class="mv" id="di-total-val">$0</div><div class="ms">total cost basis</div></div>
-    <div class="met"><div class="ml">Unrealized P&L</div><div class="mv" id="di-total-pnl">$0</div><div class="ms" id="di-total-pnl-pct">0.00%</div></div>
-    <div class="met"><div class="ml">Positions</div><div class="mv" id="di-pos-count">0</div><div class="ms">stocks held</div></div>
-    <div class="met"><div class="ml">Harvest Available</div><div class="mv red" id="di-harvest-val">$0</div><div class="ms">unrealized losses</div></div>
-  </div>
-
-  <!-- Add position form -->
-  <p class="stitle">Add / Update Position</p>
-  <div class="card">
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:end">
-      <div>
-        <div class="ml" style="margin-bottom:4px">Symbol</div>
-        <input id="di-sym" placeholder="e.g. AAPL" maxlength="6" style="width:100%;background:var(--bg3);color:var(--text);border:1px solid var(--border2);border-radius:6px;padding:7px 9px;font-size:13px;font-weight:700;text-transform:uppercase" oninput="this.value=this.value.toUpperCase()">
-      </div>
-      <div>
-        <div class="ml" style="margin-bottom:4px">Shares</div>
-        <input id="di-shares" type="number" placeholder="0" min="0.001" step="0.001" style="width:100%;background:var(--bg3);color:var(--text);border:1px solid var(--border2);border-radius:6px;padding:7px 9px;font-size:13px">
-      </div>
-      <div>
-        <div class="ml" style="margin-bottom:4px">Avg Cost</div>
-        <input id="di-cost" type="number" placeholder="0.00" min="0.01" step="0.01" style="width:100%;background:var(--bg3);color:var(--text);border:1px solid var(--border2);border-radius:6px;padding:7px 9px;font-size:13px">
-      </div>
-      <button onclick="diAddPosition()" style="background:var(--green);color:#000;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap">+ Add</button>
-    </div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
-      <div style="font-size:11px;color:var(--text3)">Prices auto-fetched via Finnhub · Updates on tab open</div>
-      <button onclick="diRefreshPrices()" style="background:var(--bg3);color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer">↻ Refresh Prices</button>
-    </div>
-  </div>
-
-  <!-- Holdings table -->
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-    <p class="stitle" style="margin:0">Holdings vs QQQ Weights</p>
-    <div style="display:flex;gap:6px">
-      <select id="di-index-sel" onchange="diRender()" style="background:var(--bg3);color:var(--text);border:1px solid var(--border2);border-radius:6px;padding:4px 8px;font-size:11px;font-weight:700">
-        <option value="QQQ">QQQ (Nasdaq-100)</option>
-        <option value="SPY">SPY (S&P 500)</option>
-        <option value="DIA">DIA (Dow Jones)</option>
-      </select>
-      <button onclick="diClearAll()" style="background:var(--rbg);color:var(--rt);border:1px solid rgba(255,95,94,.3);border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer">Clear All</button>
-    </div>
-  </div>
-  <div class="card" style="padding:0;overflow:hidden">
-    <div style="overflow-x:auto">
-      <table id="di-table" style="width:100%;border-collapse:collapse;font-size:12px">
-        <thead>
-          <tr style="background:var(--bg3);color:var(--text3);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em">
-            <th style="padding:9px 12px;text-align:left">Symbol</th>
-            <th style="padding:9px 8px;text-align:right">Shares</th>
-            <th style="padding:9px 8px;text-align:right">Avg Cost</th>
-            <th style="padding:9px 8px;text-align:right">Price</th>
-            <th style="padding:9px 8px;text-align:right">Mkt Value</th>
-            <th style="padding:9px 8px;text-align:right">Weight</th>
-            <th style="padding:9px 8px;text-align:right">Target</th>
-            <th style="padding:9px 8px;text-align:right">Drift</th>
-            <th style="padding:9px 8px;text-align:right">P&L</th>
-            <th style="padding:9px 8px;text-align:center">Action</th>
-          </tr>
-        </thead>
-        <tbody id="di-tbody">
-          <tr><td colspan="10" style="padding:24px;text-align:center;color:var(--text3)">No positions yet — add stocks above</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- Tax-loss harvesting -->
-  <p class="stitle" style="margin-top:4px">Tax-Loss Harvesting Opportunities</p>
-  <div id="di-harvest-card" class="card">
-    <div style="color:var(--text3);font-size:12px;text-align:center;padding:8px 0">No harvest candidates — all positions profitable or flat</div>
-  </div>
-
-  <!-- Rebalancing recommendations -->
-  <p class="stitle">Rebalancing Recommendations</p>
-  <div id="di-rebal-card" class="card">
-    <div style="color:var(--text3);font-size:12px;text-align:center;padding:8px 0">Add positions to see rebalancing suggestions</div>
-  </div>
-
-  <!-- Missing index positions -->
-  <p class="stitle">Index Constituents Not Held</p>
-  <div id="di-missing-card" class="card" style="padding:11px 12px">
-    <div style="color:var(--text3);font-size:12px;text-align:center;padding:8px 0">Select an index and add positions to see gaps</div>
-  </div>
-
-</div>
-<!-- ══ END DIRECT INDEX TAB ══ -->
-
 </div><!-- content -->
 </div><!-- app -->
 
@@ -1090,7 +985,6 @@ function showTab(id,btn){
   if(id==='order')renderSug();
   if(id==='record')initRecordTab();
   if(id==='spreads')renderSpreads();
-  if(id==='di'){diRender();if(diPositions.length&&!Object.keys(diPrices).length)diRefreshPrices();}
 }
 
 // ══════════════════════════════════════════
@@ -3494,246 +3388,6 @@ function clearSpread(){
   if(expEl){expEl.onchange=function(){onTick();};}
   renderSug();
 }
-
-// ══════════════════════════════════════════
-// DIRECT INDEXING
-// ══════════════════════════════════════════
-const DI_INDEXES = {
-  QQQ: {
-    name:'Nasdaq-100',
-    holdings:{
-      AAPL:8.50,MSFT:7.90,NVDA:7.40,AMZN:5.50,META:4.60,
-      GOOGL:3.60,GOOG:2.50,TSLA:3.10,AVGO:3.00,COST:2.60,
-      NFLX:2.10,TMUS:1.90,AMD:1.50,ADBE:1.30,QCOM:1.20,
-      INTU:1.20,TXN:1.10,PEP:1.10,CSCO:1.00,AMAT:1.00,
-      PANW:0.90,MU:0.85,ISRG:0.85,LRCX:0.80,REGN:0.75,
-      KLAC:0.70,SNPS:0.65,CDNS:0.65,MRVL:0.65,ABNB:0.60
-    }
-  },
-  SPY: {
-    name:'S&P 500 (top 25)',
-    holdings:{
-      AAPL:7.10,MSFT:6.50,NVDA:5.80,AMZN:3.80,META:2.80,
-      GOOGL:2.20,GOOG:1.80,TSLA:1.80,AVGO:2.00,JPM:1.60,
-      UNH:1.30,V:1.20,COST:1.10,HD:1.00,MA:1.00,
-      PG:0.95,WMT:0.95,JNJ:0.90,BAC:0.85,NFLX:0.85,
-      ORCL:0.80,CVX:0.75,MRK:0.75,ABBV:0.70,KO:0.70
-    }
-  },
-  DIA: {
-    name:'Dow Jones (30)',
-    holdings:{
-      UNH:10.20,MSFT:7.40,GS:7.10,HD:6.80,CAT:5.50,
-      SHW:5.20,MCD:5.00,AMGN:4.80,AXP:4.50,V:4.30,
-      TRV:4.10,CRM:3.90,IBM:3.60,HON:3.50,JPM:3.30,
-      AAPL:3.20,BA:3.00,MMM:2.80,CVX:2.70,JNJ:2.60,
-      WMT:2.50,PG:2.30,MRK:2.20,NKE:2.10,DIS:2.00,
-      INTC:1.80,KO:1.70,DOW:1.60,CSCO:1.50,VZ:1.40
-    }
-  }
-};
-
-let diPositions = JSON.parse(localStorage.getItem('di-positions')||'[]');
-let diPrices = {};
-
-function diSave(){localStorage.setItem('di-positions',JSON.stringify(diPositions));}
-
-function diAddPosition(){
-  const sym = document.getElementById('di-sym').value.trim().toUpperCase();
-  const shares = parseFloat(document.getElementById('di-shares').value);
-  const cost = parseFloat(document.getElementById('di-cost').value);
-  if(!sym||!shares||!cost||shares<=0||cost<=0){showToast('Enter symbol, shares, and avg cost');return;}
-  const existing = diPositions.findIndex(p=>p.symbol===sym);
-  if(existing>=0){
-    diPositions[existing].shares=shares;
-    diPositions[existing].avgCost=cost;
-  } else {
-    diPositions.push({symbol:sym,shares,avgCost:cost});
-  }
-  diSave();
-  document.getElementById('di-sym').value='';
-  document.getElementById('di-shares').value='';
-  document.getElementById('di-cost').value='';
-  diRefreshPrices();
-}
-
-function diRemovePosition(sym){
-  diPositions=diPositions.filter(p=>p.symbol!==sym);
-  diSave();
-  diRender();
-}
-
-function diClearAll(){
-  if(!diPositions.length)return;
-  if(!confirm('Remove all direct index positions?'))return;
-  diPositions=[];
-  diSave();
-  diRender();
-}
-
-async function diRefreshPrices(){
-  if(!diPositions.length){diRender();return;}
-  const syms=[...new Set(diPositions.map(p=>p.symbol))];
-  showToast('Fetching prices…');
-  const fetches = syms.map(s=>
-    fetch(`https://finnhub.io/api/v1/quote?symbol=${s}&token=${FINNHUB_TOKEN}`)
-      .then(r=>r.json())
-      .then(d=>{if(d&&d.c&&d.c>0)diPrices[s]=d.c;})
-      .catch(()=>{})
-  );
-  await Promise.all(fetches);
-  diRender();
-  showToast('Prices updated');
-}
-
-function diRender(){
-  const index = document.getElementById('di-index-sel')?.value||'QQQ';
-  const idx = DI_INDEXES[index];
-  const tbody = document.getElementById('di-tbody');
-  if(!tbody)return;
-
-  if(!diPositions.length){
-    tbody.innerHTML='<tr><td colspan="10" style="padding:24px;text-align:center;color:var(--text3)">No positions yet — add stocks above</td></tr>';
-    document.getElementById('di-metrics').innerHTML=`
-      <div class="met"><div class="ml">Portfolio Value</div><div class="mv">$0</div><div class="ms">total cost basis</div></div>
-      <div class="met"><div class="ml">Unrealized P&L</div><div class="mv">$0</div><div class="ms">0.00%</div></div>
-      <div class="met"><div class="ml">Positions</div><div class="mv">0</div><div class="ms">stocks held</div></div>
-      <div class="met"><div class="ml">Harvest Available</div><div class="mv red">$0</div><div class="ms">unrealized losses</div></div>`;
-    document.getElementById('di-harvest-card').innerHTML='<div style="color:var(--text3);font-size:12px;text-align:center;padding:8px 0">No harvest candidates — all positions profitable or flat</div>';
-    document.getElementById('di-rebal-card').innerHTML='<div style="color:var(--text3);font-size:12px;text-align:center;padding:8px 0">Add positions to see rebalancing suggestions</div>';
-    document.getElementById('di-missing-card').innerHTML='<div style="color:var(--text3);font-size:12px;text-align:center;padding:8px 0">Add positions to see gaps</div>';
-    return;
-  }
-
-  // Compute totals
-  let totalMktVal=0, totalCost=0, totalLoss=0;
-  const enriched = diPositions.map(p=>{
-    const price = diPrices[p.symbol]||0;
-    const mktVal = price>0 ? p.shares*price : 0;
-    const costBasis = p.shares*p.avgCost;
-    const pnl = price>0 ? mktVal-costBasis : 0;
-    totalMktVal+=mktVal||costBasis;
-    totalCost+=costBasis;
-    if(pnl<0)totalLoss+=pnl;
-    return {...p,price,mktVal:mktVal||costBasis,costBasis,pnl};
-  });
-
-  // Weights
-  enriched.forEach(p=>{p.weight=totalMktVal>0?((p.mktVal/totalMktVal)*100):0;});
-
-  // Sort by market value desc
-  enriched.sort((a,b)=>b.mktVal-a.mktVal);
-
-  // Summary metrics
-  const totalPnl = totalMktVal-totalCost;
-  const totalPnlPct = totalCost>0?((totalPnl/totalCost)*100):0;
-  document.getElementById('di-total-val').textContent='$'+fmt2(totalMktVal);
-  const pnlEl=document.getElementById('di-total-pnl');
-  pnlEl.textContent=(totalPnl>=0?'+':'')+' $'+fmt2(Math.abs(totalPnl));
-  pnlEl.className='mv '+(totalPnl>=0?'green':'red');
-  document.getElementById('di-total-pnl-pct').textContent=(totalPnlPct>=0?'+':'')+totalPnlPct.toFixed(2)+'%';
-  document.getElementById('di-pos-count').textContent=diPositions.length;
-  document.getElementById('di-harvest-val').textContent='$'+fmt2(Math.abs(totalLoss));
-
-  // Holdings table
-  tbody.innerHTML=enriched.map(p=>{
-    const target = idx.holdings[p.symbol]||0;
-    const drift = p.weight-target;
-    const driftCls = Math.abs(drift)<0.5?'di-drift-ok':drift>0?'di-drift-pos':'di-drift-neg';
-    const driftStr = (drift>=0?'+':'')+drift.toFixed(2)+'%';
-    const pnlStr = p.price>0?((p.pnl>=0?'+':'')+' $'+fmt2(Math.abs(p.pnl))):'—';
-    const pnlCls = p.pnl>=0?'green':'red';
-    const priceStr = p.price>0?'$'+p.price.toFixed(2):'—';
-    const barW = Math.min(100,(p.weight/(target||1))*100).toFixed(1);
-    const barCol = Math.abs(drift)<1?'var(--green)':drift>1?'var(--red)':'var(--amber)';
-    return `<tr>
-      <td>${p.symbol}${target>0?'':' <span style="font-size:9px;color:var(--text3)">(custom)</span>'}</td>
-      <td style="text-align:right;color:var(--text2)">${p.shares}</td>
-      <td style="text-align:right;color:var(--text2)">$${p.avgCost.toFixed(2)}</td>
-      <td style="text-align:right;font-weight:700">${priceStr}</td>
-      <td style="text-align:right;font-weight:700">$${fmt2(p.mktVal)}</td>
-      <td style="text-align:right">${p.weight.toFixed(2)}%<div class="di-bar"><div class="di-bar-fill" style="width:${barW}%;background:${barCol}"></div></div></td>
-      <td style="text-align:right;color:var(--text3)">${target>0?target.toFixed(2)+'%':'—'}</td>
-      <td style="text-align:right" class="${driftCls}">${target>0?driftStr:'—'}</td>
-      <td style="text-align:right" class="${pnlCls}">${pnlStr}</td>
-      <td style="text-align:center"><button onclick="diRemovePosition('${p.symbol}')" style="background:var(--rbg);color:var(--rt);border:none;border-radius:5px;padding:3px 8px;font-size:11px;font-weight:700;cursor:pointer">✕</button></td>
-    </tr>`;
-  }).join('');
-
-  // Tax-loss harvesting
-  const harvestable = enriched.filter(p=>p.pnl<-50&&p.price>0).sort((a,b)=>a.pnl-b.pnl);
-  const harvestCard = document.getElementById('di-harvest-card');
-  if(harvestable.length){
-    const estSavings = Math.abs(harvestable.reduce((s,p)=>s+p.pnl,0))*0.238;
-    harvestCard.innerHTML=`
-      <div class="row" style="padding:6px 0 10px">
-        <span class="rl" style="font-size:11px">Est. tax savings (23.8% rate)</span>
-        <span class="rv green">$${fmt2(estSavings)}</span>
-      </div>`+
-      harvestable.map(p=>`
-      <div class="di-harvest-row">
-        <div>
-          <span style="font-weight:800;font-size:13px">${p.symbol}</span>
-          <span style="color:var(--text3);font-size:11px;margin-left:8px">${p.shares} shares @ $${p.avgCost.toFixed(2)}</span>
-        </div>
-        <div style="text-align:right">
-          <div class="red" style="font-weight:800">$${fmt2(p.pnl)} (${((p.pnl/p.costBasis)*100).toFixed(1)}%)</div>
-          <div style="font-size:10px;color:var(--text3)">saves ~$${fmt2(Math.abs(p.pnl)*0.238)} in taxes</div>
-        </div>
-      </div>`).join('');
-  } else {
-    harvestCard.innerHTML='<div style="color:var(--text3);font-size:12px;text-align:center;padding:8px 0">No harvest candidates — all positions within threshold</div>';
-  }
-
-  // Rebalancing recommendations
-  const rebalCard = document.getElementById('di-rebal-card');
-  const rebalItems=[];
-  enriched.forEach(p=>{
-    const target=idx.holdings[p.symbol]||0;
-    if(!target)return;
-    const drift=p.weight-target;
-    if(Math.abs(drift)<1)return;
-    const targetVal=(target/100)*totalMktVal;
-    const delta=targetVal-p.mktVal;
-    const price=p.price||p.avgCost;
-    const shareDelta=Math.abs(delta/price);
-    rebalItems.push({symbol:p.symbol,drift,delta,shareDelta,price,action:delta>0?'BUY':'SELL'});
-  });
-  rebalItems.sort((a,b)=>Math.abs(b.drift)-Math.abs(a.drift));
-  if(rebalItems.length){
-    rebalCard.innerHTML=rebalItems.map(r=>`
-      <div class="di-harvest-row">
-        <div>
-          <span class="${r.action==='BUY'?'di-rebal-buy':'di-rebal-sell'}">${r.action}</span>
-          <span style="font-weight:800;font-size:13px;margin-left:8px">${r.symbol}</span>
-          <span style="color:var(--text3);font-size:11px;margin-left:6px">~${r.shareDelta.toFixed(2)} shares @ $${r.price.toFixed(2)}</span>
-        </div>
-        <div style="text-align:right">
-          <div class="${r.action==='BUY'?'green':'red'}" style="font-weight:700">$${fmt2(Math.abs(r.delta))}</div>
-          <div style="font-size:10px;color:var(--text3)">drift ${r.drift>=0?'+':''}${r.drift.toFixed(2)}%</div>
-        </div>
-      </div>`).join('');
-  } else {
-    rebalCard.innerHTML='<div style="color:var(--text3);font-size:12px;text-align:center;padding:8px 0">Portfolio is well-balanced (all drifts within ±1%)</div>';
-  }
-
-  // Missing index positions
-  const heldSyms = new Set(diPositions.map(p=>p.symbol));
-  const missing = Object.entries(idx.holdings)
-    .filter(([s])=>!heldSyms.has(s))
-    .sort((a,b)=>b[1]-a[1])
-    .slice(0,15);
-  const missingCard = document.getElementById('di-missing-card');
-  if(missing.length){
-    missingCard.innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:6px">`+
-      missing.map(([s,w])=>`<span class="tag tb2" style="font-size:10px;cursor:pointer" onclick="document.getElementById('di-sym').value='${s}';document.getElementById('di-sym').focus()">${s} <span style="opacity:.7">${w.toFixed(1)}%</span></span>`).join('')+
-      `</div>`;
-  } else {
-    missingCard.innerHTML='<div style="color:var(--gt);font-size:12px;text-align:center;padding:8px 0">You hold all major index constituents</div>';
-  }
-}
-
-function fmt2(n){return isNaN(n)?'0.00':Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
 
 // ══════════════════════════════════════════
 // INIT
