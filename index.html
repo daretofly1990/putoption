@@ -19,6 +19,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 /* HEADER */
 #hdr{padding:44px 16px 8px;background:var(--bg);border-bottom:1px solid var(--border);flex-shrink:0}
 #hdr-row{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+#hdr-refresh{display:inline-flex;align-items:center;gap:5px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--rs);color:var(--text2);font-size:11px;font-weight:700;padding:5px 9px;cursor:pointer;flex-shrink:0;line-height:1;transition:background .15s,color .15s}
+#hdr-refresh:hover{background:var(--gbg);color:var(--gt);border-color:rgba(34,201,138,.35)}
+#hdr-refresh .refresh-icon{font-size:14px;display:inline-block;line-height:1}
+#hdr-refresh.refreshing{pointer-events:none;opacity:.7}
+#hdr-refresh.refreshing .refresh-icon{animation:sp .6s linear infinite}
 #hdr h1{font-size:15px;font-weight:800;letter-spacing:-.4px}
 .sub{font-size:11px;color:var(--text3);margin-top:2px}
 #price-block{text-align:right;flex-shrink:0;min-width:120px}
@@ -266,12 +271,12 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 <!-- HEADER -->
 <div id="hdr">
   <div id="hdr-row">
+    <button id="hdr-refresh" onclick="refreshAll()" title="Refresh quotes and all quote-dependent views"><span class="refresh-icon">↻</span><span>Refresh</span></button>
     <div>
       <h1>QQQ Naked Put</h1>
       <div class="sub">87.6% win rate · $67,384 realized</div>
       <div id="mkt-row"><div class="dot dc" id="mkt-dot"></div><span id="mkt-lbl">Checking...</span></div>
     </div>
-    <button id="hdr-refresh" onclick="fetchLD()" title="Refresh data" style="background:none;border:1px solid var(--border2);border-radius:var(--rs);color:var(--text3);font-size:14px;padding:4px 8px;cursor:pointer;flex-shrink:0;line-height:1">↻</button>
     <div id="price-block">
       <div id="qqq-price">—</div>
       <div id="price-meta">
@@ -1126,6 +1131,29 @@ async function fetchTradierOptions(expDate){
 
 // ── Main fetch orchestrator ────────────────
 let dataSource='—';
+
+// Refresh quotes + re-render the active tab's quote-dependent views.
+// fetchLD → applyLD already triggers updateSig / renderSug / renderPosAlert /
+// renderSigPositions, and renderSpreads when the Spreads panel is active.
+// This wrapper adds re-renders for tabs whose data references LD but isn't
+// re-triggered automatically (Stats, Positions, Gains & Losses), plus a
+// spinning visual while the fetch is in-flight.
+async function refreshAll(){
+  const btn=document.getElementById('hdr-refresh');
+  if(btn) btn.classList.add('refreshing');
+  try{
+    await fetchLD();
+    const active=document.querySelector('.panel.active');
+    const id=active?.id?.replace('panel-','');
+    if(id==='stats'&&typeof renderStats==='function') renderStats();
+    else if(id==='positions'&&typeof renderPositions==='function') renderPositions();
+    else if(id==='gains'&&typeof renderGL==='function') renderGL();
+    else if(id==='order'&&typeof renderSug==='function') renderSug();
+    else if(id==='spreads'&&typeof renderSpreads==='function') renderSpreads();
+  }finally{
+    if(btn) btn.classList.remove('refreshing');
+  }
+}
 
 async function fetchLD(){
   setDataStatus('fetching');
