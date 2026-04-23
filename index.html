@@ -288,7 +288,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         </div>
         <div id="clocks-block" style="margin-top:4px;text-align:right">
           <div id="clock-et" style="font-size:10px;font-weight:700;color:var(--text2);font-variant-numeric:tabular-nums;white-space:nowrap">— ET</div>
-          <div id="delay-badge" style="margin-top:3px;display:inline-block;font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px;background:var(--abg);color:var(--at)">15-min delay</div>
+          <div id="delay-badge" style="margin-top:3px;display:inline-block;font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px;background:var(--bbg);color:var(--bt)">Checking source...</div>
         </div>
       </div>
     </div>
@@ -1270,19 +1270,30 @@ async function fetchLD(){
   setDataStatus('ok');
 }
 
+// Per-source delay classification — controls the header badge label & color
+// realtime: live quotes (green) · delayed: ~15 min behind (amber) · eod: previous close only (red) · stale: hardcoded fallback (red)
+function sourceDelayTier(src){
+  if(src==='Finnhub'||src==='Tradier') return 'realtime';
+  if(src==='Yahoo v7'||src==='Yahoo v8') return 'delayed';
+  if(src==='Stooq') return 'eod';
+  return 'stale'; // 'fallback' or unknown
+}
+
 function setDataStatus(state){
   const db=document.getElementById('delay-badge');
   if(!db) return;
-  if(state==='fetching'){db.textContent='Fetching...';db.style.background='var(--bbg)';db.style.color='var(--bt)';}
-  else if(state==='error'){db.textContent='Data error — retrying';db.style.background='var(--rbg)';db.style.color='var(--rt)';}
-  else{
-    const et=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
-    const mins=et.getHours()*60+et.getMinutes(),d=et.getDay();
-    const isOpen=d>=1&&d<=5&&mins>=570&&mins<960;
-    db.textContent=isOpen?`~15-min delay · ${dataSource}`:`Real-time · ${dataSource}`;
-    db.style.background=isOpen?'var(--abg)':'var(--gbg)';
-    db.style.color=isOpen?'var(--at)':'var(--gt)';
-  }
+  if(state==='fetching'){db.textContent='Fetching...';db.style.background='var(--bbg)';db.style.color='var(--bt)';return;}
+  if(state==='error'){db.textContent='Data error — retrying';db.style.background='var(--rbg)';db.style.color='var(--rt)';return;}
+  const et=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
+  const mins=et.getHours()*60+et.getMinutes(),d=et.getDay();
+  const isOpen=d>=1&&d<=5&&mins>=570&&mins<960;
+  const tier=sourceDelayTier(dataSource);
+  let label,bg,col;
+  if(tier==='realtime'){label=isOpen?`Real-time · ${dataSource}`:`Real-time (closed) · ${dataSource}`;bg='var(--gbg)';col='var(--gt)';}
+  else if(tier==='delayed'){label=isOpen?`~15-min delay · ${dataSource}`:`Last close · ${dataSource}`;bg=isOpen?'var(--abg)':'var(--gbg)';col=isOpen?'var(--at)':'var(--gt)';}
+  else if(tier==='eod'){label=`End-of-day only · ${dataSource}`;bg='var(--rbg)';col='var(--rt)';}
+  else{label=`Stale · ${dataSource}`;bg='var(--rbg)';col='var(--rt)';}
+  db.textContent=label;db.style.background=bg;db.style.color=col;
 }
 
 function applyLD(){
@@ -1294,18 +1305,7 @@ function applyLD(){
   ce.style.color=chg>=0?'var(--gt)':'var(--rt)';
   document.getElementById('hdr-bid').textContent=bid.toFixed(2);
   document.getElementById('hdr-ask').textContent=ask.toFixed(2);
-  // Delay badge — Yahoo Finance free tier is ~15min delayed during market hours
-  const db=document.getElementById('delay-badge');
-  if(db){
-    const et=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
-    const mins=et.getHours()*60+et.getMinutes(),d=et.getDay();
-    const isOpen=d>=1&&d<=5&&mins>=570&&mins<960;
-    if(isOpen){
-      db.textContent='~15-min delay';db.style.background='var(--abg)';db.style.color='var(--at)';
-    } else {
-      db.textContent='Real-time (closed)';db.style.background='var(--gbg)';db.style.color='var(--gt)';
-    }
-  }
+  // Delay badge is managed by setDataStatus() — single source of truth, source-aware
   // Extended hours row
   const extRow=document.getElementById('ext-hours-row');
   if(isExt&&extPrice){
