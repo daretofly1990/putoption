@@ -1409,43 +1409,12 @@ function updateTrend(){
 }
 
 // Streaming simulation
+// Tick every 2s: updates the clock and re-renders quote-dependent alerts,
+// but never perturbs LD.qqq / LD.bid / LD.ask / LD.extPrice. Real price
+// changes come from fetchLD only (scheduled every 5 min or via Refresh).
 function streamTick(){
-  if(!LD.qqq)return;
-  const et=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
-  const h=et.getHours(),m=et.getMinutes(),mins=h*60+m,d=et.getDay();
-  const isMarket=d>=1&&d<=5&&mins>=570&&mins<960;
-  const isExt=d>=1&&d<=5&&((mins>=480&&mins<570)||(mins>=960&&mins<1200));
-
-  const chg=(Math.random()-.485)*.12;
-  if(isMarket){
-    // Regular session — move main price
-    LD.qqq=Math.round((LD.qqq+chg)*100)/100;
-    LD.bid=Math.round((LD.qqq-.05)*100)/100;
-    LD.ask=Math.round((LD.qqq+.05)*100)/100;
-    const pe=document.getElementById('qqq-price');
-    pe.style.color=chg>=0?'var(--gt)':'var(--rt)';
-    setTimeout(()=>pe.style.color='var(--gt)',400);
-    pe.textContent='$'+LD.qqq.toFixed(2);
-    document.getElementById('hdr-bid').textContent=LD.bid.toFixed(2);
-    document.getElementById('hdr-ask').textContent=LD.ask.toFixed(2);
-  } else if(isExt&&LD.extPrice){
-    // Extended hours — move ext price, keep main price static
-    LD.extPrice=Math.round((LD.extPrice+chg*.5)*100)/100;
-    LD.extChg=((LD.extPrice-LD.qqq)/LD.qqq*100);
-    LD.isExt=true;
-    const ep=document.getElementById('ext-price');
-    if(ep){
-      ep.style.color=chg>=0?'var(--gt)':'var(--rt)';
-      setTimeout(()=>ep.style.color='var(--text2)',400);
-      ep.textContent='$'+LD.extPrice.toFixed(2);
-      const ec=document.getElementById('ext-chg');
-      if(ec){ec.textContent=(LD.extChg>=0?'+':'')+LD.extChg.toFixed(2)+'%';ec.style.color=LD.extChg>=0?'var(--gt)':'var(--rt)';}
-    }
-    // Show ext hours row
-    const er=document.getElementById('ext-hours-row');
-    if(er)er.style.display='flex';
-  }
   document.getElementById('clock-et').textContent=new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',second:'2-digit',timeZone:'America/New_York'})+' ET';
+  if(!LD.qqq) return;
   simOQ();if(pendingSpread)simOQ2();
   extraOrderLegIds.forEach(id=>simExtraLeg(id));
   renderPosAlert();renderSigPositions();
