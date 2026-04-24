@@ -3596,7 +3596,7 @@ function npRender(trigger){
   // Next trading day expiration (1 DTE)
   const expDate=getNextTradingDays(2)[0];
   const expIso=expDate.toISOString().split('T')[0];
-  const expLabel=expDate.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  const expLabel=expDate.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}).replace(/,\s*/,' ');
 
   // Regime
   const vixCls=getVL(), trendCls=getTR(), pmCls=getPM();
@@ -3695,23 +3695,28 @@ function npRender(trigger){
       const rankCol=i===0?'var(--gt)':'var(--text3)';
       const histBar=c.histN>=5?`${c.histScore}% (${c.histN} similar)`:'insufficient data';
       return `<div class="card" style="padding:12px 14px;border-left:3px solid ${scoreCol}">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <div>
-            <span style="font-size:10px;font-weight:800;color:${rankCol};letter-spacing:.08em">${rankBadge}</span>
-            <span style="font-size:18px;font-weight:800;color:var(--bt);margin-left:8px">Sell $${c.strike} Put</span>
-            <div style="font-size:10px;color:var(--text3);margin-top:2px">Exp <span style="color:var(--text2);font-weight:700">${expLabel}</span> · <span style="color:var(--text2);font-weight:700">${dte}DTE</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;gap:10px">
+          <div style="min-width:0;flex:1">
+            <div style="font-size:10px;font-weight:800;color:${rankCol};letter-spacing:.08em;margin-bottom:4px">${rankBadge}</div>
+            <div style="font-size:18px;font-weight:800;line-height:1.3">
+              <span style="color:var(--bt)">Sell ${expLabel} $${c.strike} Put</span>
+              <span style="color:var(--text3);font-weight:600;margin:0 4px">·</span>
+              <span style="color:var(--gt);white-space:nowrap">Premium $${c.prem.toFixed(2)}</span>
+            </div>
+            <div style="font-size:10px;color:var(--text3);margin-top:3px">${dte}DTE</div>
           </div>
-          <div style="text-align:right"><div style="font-size:10px;color:var(--text3);font-weight:700">SCORE</div>
-            <div style="font-size:18px;font-weight:800;color:${scoreCol}">${c.score}</div></div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-size:10px;color:var(--text3);font-weight:700">SCORE</div>
+            <div style="font-size:18px;font-weight:800;color:${scoreCol}">${c.score}</div>
+          </div>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:11px;margin-bottom:8px">
-          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.06em">Premium</div><div style="font-weight:800;color:var(--gt)">$${c.prem.toFixed(2)}</div></div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font-size:11px;margin-bottom:10px">
           <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.06em">Delta</div><div style="font-weight:700">${c.delta.toFixed(3)}</div></div>
           <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.06em">OTM</div><div style="font-weight:700">${c.distPts}pts · ${c.otmPct}%</div></div>
           <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.06em">Est. credit</div><div style="font-weight:700">$${Math.round(c.prem*100*(isRed?3:isAmber?9:14))}</div></div>
         </div>
-        <div style="font-size:10px;color:var(--text3);line-height:1.5">
-          Premium fit: <span style="color:var(--text2);font-weight:700">${c.premScore}</span> · OTM fit: <span style="color:var(--text2);font-weight:700">${c.otmScore}</span> · Delta fit: <span style="color:var(--text2);font-weight:700">${c.deltaScore}</span> · Hist WR: <span style="color:var(--text2);font-weight:700">${histBar}</span>
+        <div style="font-size:13px;color:var(--text2);font-weight:700;line-height:1.55">
+          Premium fit: <span style="color:var(--text);font-weight:800">${c.premScore}</span> · OTM fit: <span style="color:var(--text);font-weight:800">${c.otmScore}</span> · Delta fit: <span style="color:var(--text);font-weight:800">${c.deltaScore}</span> · Hist WR: <span style="color:var(--text);font-weight:800">${histBar}</span>
         </div>
         <button onclick="npApplyToOrder(${c.strike},${c.prem},'${expIso}')" style="margin-top:10px;width:100%;background:var(--green);color:#000;border:none;border-radius:6px;padding:8px;font-size:12px;font-weight:800;cursor:pointer">Apply to Order ticket →</button>
       </div>`;
