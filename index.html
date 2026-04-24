@@ -311,6 +311,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <button class="tb" onclick="showTab('entry',this)">Entry Rules</button>
   <button class="tb" onclick="showTab('exit',this)">Exit &amp; Roll</button>
   <button class="tb" onclick="showTab('stats',this)">Stats</button>
+  <button class="tb" onclick="showTab('nakedput',this)">QQQ Naked Put</button>
 </div>
 
 <div id="content">
@@ -934,6 +935,78 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   </div>
 </div>
 
+<!-- ══ QQQ NAKED PUT TAB — DAILY RECOMMENDATION ══ -->
+<div id="panel-nakedput" class="panel">
+
+  <!-- Live banner: what changed since last render -->
+  <div id="np-banner" class="card" style="display:none;padding:10px 12px;border-left:3px solid var(--bt);background:var(--bbg);margin-bottom:10px">
+    <div style="font-size:10px;font-weight:800;color:var(--bt);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px">Updated</div>
+    <div id="np-banner-body" style="font-size:12px;color:var(--text2);line-height:1.45"></div>
+  </div>
+
+  <!-- Regime + headline stats -->
+  <div class="sig" id="np-regime-card" style="padding:15px 16px;margin-bottom:12px">
+    <div class="sig-lbl"><span id="np-regime-lbl">Analyzing...</span></div>
+    <div class="sig-title" id="np-regime-title" style="font-size:16px;margin-bottom:4px">Loading recommendation...</div>
+    <div class="sig-desc" id="np-regime-desc" style="font-size:12px">Pulling quote, volume, and news.</div>
+    <div id="np-regime-meta" style="margin-top:8px;font-size:10px;color:var(--text3);display:flex;gap:12px;flex-wrap:wrap"></div>
+  </div>
+
+  <!-- Key metrics -->
+  <div class="mg4" style="grid-template-columns:repeat(4,1fr);margin-bottom:12px">
+    <div class="met"><div class="ml">QQQ</div><div class="mv green" id="np-qqq">—</div><div class="ms" id="np-qqq-sub">—</div></div>
+    <div class="met"><div class="ml">VIX</div><div class="mv" id="np-vix">—</div><div class="ms" id="np-vix-sub">—</div></div>
+    <div class="met"><div class="ml">Volume</div><div class="mv" id="np-vol">—</div><div class="ms" id="np-vol-sub">vs 20d avg</div></div>
+    <div class="met"><div class="ml">Your win rate</div><div class="mv green" id="np-hist-wr">—</div><div class="ms" id="np-hist-sub">similar conditions</div></div>
+  </div>
+
+  <!-- Top 3 strikes -->
+  <p class="stitle">Top Candidates <span id="np-cand-dte" style="text-transform:none;letter-spacing:0;font-weight:400;font-size:9px;color:var(--text3)"></span></p>
+  <div id="np-candidates" style="display:grid;gap:10px;margin-bottom:14px"></div>
+
+  <!-- News watch -->
+  <p class="stitle">News Watch <span id="np-news-count" style="text-transform:none;letter-spacing:0;font-weight:400;font-size:9px;color:var(--text3)"></span></p>
+  <div id="np-news-list" class="card" style="padding:4px 12px;margin-bottom:14px;font-size:12px">
+    <div style="color:var(--text3);padding:10px 0;text-align:center">Scanning...</div>
+  </div>
+
+  <!-- Recommendation log -->
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <p class="stitle" style="margin:0">Recommendation Log <span id="np-log-count" style="text-transform:none;letter-spacing:0;font-weight:400;font-size:9px;color:var(--text3)"></span></p>
+    <button onclick="npClearLog()" style="background:var(--bg3);color:var(--text3);border:1px solid var(--border);border-radius:6px;padding:4px 9px;font-size:10px;font-weight:700;cursor:pointer">Clear</button>
+  </div>
+  <div class="card" style="padding:0;overflow-x:auto">
+    <table id="np-log-table" style="width:100%;border-collapse:collapse;font-size:11px;min-width:560px">
+      <thead>
+        <tr style="background:var(--bg3);color:var(--text3);font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em">
+          <th style="padding:7px 9px;text-align:left">Time</th>
+          <th style="padding:7px 9px;text-align:right">QQQ</th>
+          <th style="padding:7px 9px;text-align:right">VIX</th>
+          <th style="padding:7px 9px;text-align:left">Regime</th>
+          <th style="padding:7px 9px;text-align:right">Top strike</th>
+          <th style="padding:7px 9px;text-align:right">Prem</th>
+          <th style="padding:7px 9px;text-align:right">Score</th>
+          <th style="padding:7px 9px;text-align:left">Trigger</th>
+        </tr>
+      </thead>
+      <tbody id="np-log-tbody">
+        <tr><td colspan="8" style="padding:16px;text-align:center;color:var(--text3)">No entries yet</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Explainer -->
+  <div class="card" style="margin-top:14px;padding:12px;font-size:11px;color:var(--text2);line-height:1.55">
+    <div style="font-weight:800;color:var(--text);margin-bottom:6px;font-size:12px">How this tab works</div>
+    <strong>Regime</strong> combines VIX, QQQ vs 20-day MA, pre-market change, and today's volume to classify the day as Green/Yellow/Red.<br>
+    <strong>Scoring</strong> (per strike): premium sweet-spot ($0.20–$0.80 = highest — your 91% win-rate band) × 0.35, OTM distance vs expected move × 0.25, Black-Scholes delta (reject &gt;0.25) × 0.20, historical win rate for similar premium band × 0.20.<br>
+    <strong>Live updates</strong> — while this tab is open, news polls every 2 min and quote polls every 60s. If HIGH-impact news arrives, QQQ moves &gt;0.5%, or VIX jumps &gt;1pt, the recommendation auto-refreshes and you see a banner explaining why. Manual Refresh forces it.<br>
+    <strong>Premium/delta</strong> come from a Black-Scholes approximation (no Tradier token). Real chain data is a future wire-up.
+  </div>
+
+</div>
+<!-- ══ END QQQ NAKED PUT TAB ══ -->
+
 </div><!-- content -->
 </div><!-- app -->
 
@@ -990,6 +1063,8 @@ function showTab(id,btn){
   if(id==='order')renderSug();
   if(id==='record')initRecordTab();
   if(id==='spreads')renderSpreads();
+  if(id==='nakedput'){npOnTabOpen();}
+  else{npOnTabClose();}
 }
 
 // ══════════════════════════════════════════
@@ -1150,6 +1225,7 @@ async function refreshAll(){
     else if(id==='gains'&&typeof renderGL==='function') renderGL();
     else if(id==='order'&&typeof renderSug==='function') renderSug();
     else if(id==='spreads'&&typeof renderSpreads==='function') renderSpreads();
+    else if(id==='nakedput'&&typeof npRender==='function') npRender('manual refresh');
   }finally{
     if(btn) btn.classList.remove('refreshing');
   }
@@ -1290,8 +1366,22 @@ async function fetchLD(){
   const calcEma=(n)=>{const k=2/(n+1);let e=closes[0];closes.forEach(c=>{e=c*k+e*(1-k);});return e;};
   ema9=calcEma(9); ema21=calcEma(21);
 
+  // ── Volume context — Yahoo v8 chart (best-effort, short timeout) ──
+  let volume=null,volAvg20=null;
+  try{
+    const vData=await Promise.race([
+      fetchYahooChart('QQQ'),
+      new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),4000))
+    ]);
+    const res=vData.chart.result[0];
+    const vols=(res.indicators?.quote?.[0]?.volume||[]).filter(v=>v!=null);
+    volume=res.meta?.regularMarketVolume||vols[vols.length-1]||null;
+    const last20=vols.slice(-21,-1); // previous 20 completed days
+    if(last20.length>=5) volAvg20=last20.reduce((a,b)=>a+b,0)/last20.length;
+  }catch(e){/* non-fatal — volume metric just won't render */}
+
   LD={qqq,bid,ask,vix,ma20:sma20,sma5,sma50,ema9,ema21,chg,pmChg,
-      extPrice,extChg,extLabel,isExt,
+      extPrice,extChg,extLabel,isExt,volume,volAvg20,
       asOf:new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',second:'2-digit'})+' · '+dataSource,
       ok:true};
   applyLD();
@@ -3387,6 +3477,401 @@ function clearSpread(){
 }
 
 // ══════════════════════════════════════════
+// QQQ NAKED PUT — DAILY RECOMMENDATION TAB
+// ══════════════════════════════════════════
+// Historical trades, loaded from qqq-hist.json at startup. Drives the
+// "your win rate in similar conditions" lookup that feeds the score.
+let QQQ_HIST=[];
+let QQQ_HIST_BUCKETS=null;
+let npPollTimer=null;
+let npNewsSeen=new Set();        // headline→seen, so we only trigger on new items
+let npLastSnapshot=null;         // last {qqq,vix,newsHash} — compare to detect changes
+let npLog=JSON.parse(localStorage.getItem('qqq-reco-log-v1')||'[]');
+
+async function loadHistData(){
+  try{
+    const r=await fetch('./qqq-hist.json',{cache:'no-store'});
+    if(r.ok){QQQ_HIST=await r.json(); buildHistBuckets();}
+  }catch(e){ console.warn('hist load failed:',e.message); }
+}
+function buildHistBuckets(){
+  // Bucket by entry premium, so we can look up historical win rate for a
+  // candidate's projected premium. Sweet-spot band (0.20–0.80) gets extra
+  // resolution since it's the most important.
+  const bands=[[0,0.10],[0.10,0.20],[0.20,0.35],[0.35,0.50],[0.50,0.80],[0.80,1.50],[1.50,99]];
+  QQQ_HIST_BUCKETS=bands.map(([lo,hi])=>{
+    const inBand=QQQ_HIST.filter(t=>t.entryPrem>=lo&&t.entryPrem<hi);
+    const wins=inBand.filter(t=>t.isWin).length;
+    return {lo,hi,n:inBand.length,wins,winRate:inBand.length?(wins/inBand.length)*100:null};
+  });
+}
+function histWRForPrem(prem){
+  if(!QQQ_HIST_BUCKETS) return null;
+  const b=QQQ_HIST_BUCKETS.find(b=>prem>=b.lo&&prem<b.hi);
+  return b&&b.n>=5?b:null;
+}
+
+// Black-Scholes delta for a put (negative convention, but we return abs for the score)
+function bsDelta(S,K,sigmaPct,dte){
+  const sigma=sigmaPct/100, T=Math.max(dte/365,0.5/365);
+  const d1=(Math.log(S/K)+(0.5*sigma*sigma)*T)/(sigma*Math.sqrt(T));
+  // Standard normal CDF using erf approximation (reuse approach from bsApproxPut)
+  const erf=x=>{const s=Math.sign(x);x=Math.abs(x);const t=1/(1+0.3275911*x);const y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x);return s*y;};
+  const N=x=>0.5*(1+erf(x/Math.SQRT2));
+  return Math.abs(N(d1)-1); // |put delta|
+}
+
+// Score a single strike. Higher = better candidate.
+function npScoreStrike(strike,spot,vixVal,dte,expMove){
+  const prem=bsApproxPut(spot,strike,vixVal,dte);
+  const delta=bsDelta(spot,strike,vixVal,dte);
+  const distPts=spot-strike;
+  const otmPct=(distPts/spot)*100;
+
+  // Premium sweet-spot: $0.20–$0.80 = 100, tapers outside
+  let premScore;
+  if(prem>=0.20&&prem<=0.80) premScore=100;
+  else if(prem<0.20) premScore=Math.max(10,prem/0.20*100);
+  else premScore=Math.max(0,100-(prem-0.80)*80);
+
+  // OTM distance: ideal 0.8×–1.3× expected move
+  const otmRatio=expMove>0?distPts/expMove:1;
+  let otmScore;
+  if(otmRatio>=0.8&&otmRatio<=1.3) otmScore=100;
+  else if(otmRatio<0.8) otmScore=Math.max(0,otmRatio/0.8*100);
+  else otmScore=Math.max(0,100-(otmRatio-1.3)*60);
+
+  // Delta: reject above 0.25, best near 0.10–0.18
+  let deltaScore;
+  if(delta>0.25) deltaScore=0;
+  else if(delta<=0.18) deltaScore=100;
+  else deltaScore=Math.max(0,100-(delta-0.18)*1400);
+
+  // Historical win rate for similar premium
+  const hist=histWRForPrem(prem);
+  const histScore=hist?hist.winRate:50; // neutral if no data
+
+  const score=Math.round(premScore*0.35+otmScore*0.25+deltaScore*0.20+histScore*0.20);
+  return {strike,prem:+prem.toFixed(2),delta:+delta.toFixed(3),distPts:+distPts.toFixed(1),otmPct:+otmPct.toFixed(2),
+          premScore:+premScore.toFixed(0),otmScore:+otmScore.toFixed(0),deltaScore:+deltaScore.toFixed(0),
+          histScore:+histScore.toFixed(0),histN:hist?hist.n:0,score};
+}
+
+// Determine the strongest news signal in the last N minutes
+function npNewsSignal(){
+  const items=newsCache.today||[];
+  const now=Date.now();
+  const recentHigh=items.filter(i=>i.impact==='HIGH'&&(now-(i.pubDate||0))<3600000); // last hour
+  const anyHigh=items.some(i=>i.impact==='HIGH');
+  return {recentHigh:recentHigh.length,anyHigh,items};
+}
+
+// Detect what changed vs last snapshot → returns reason string, or null
+function npDetectChange(cur){
+  if(!npLastSnapshot) return 'initial load';
+  const reasons=[];
+  const dQ=Math.abs(cur.qqq-npLastSnapshot.qqq);
+  const dQPct=dQ/npLastSnapshot.qqq*100;
+  const dV=Math.abs(cur.vix-npLastSnapshot.vix);
+  const dNewsHigh=cur.newsSignal.recentHigh-npLastSnapshot.newsSignal.recentHigh;
+  if(dQPct>=0.5) reasons.push(`QQQ moved ${(cur.qqq>=npLastSnapshot.qqq?'+':'')+(cur.qqq-npLastSnapshot.qqq).toFixed(2)} (${(cur.qqq>=npLastSnapshot.qqq?'+':'')+dQPct.toFixed(2)}%)`);
+  if(dV>=1) reasons.push(`VIX shifted ${(cur.vix>=npLastSnapshot.vix?'+':'')}${(cur.vix-npLastSnapshot.vix).toFixed(1)} pts`);
+  if(dNewsHigh>0) reasons.push(`${dNewsHigh} new HIGH-impact headline${dNewsHigh>1?'s':''}`);
+  return reasons.length?reasons.join(' · '):null;
+}
+
+// Main render — called on tab open, quote refresh, news arrival, price move
+function npRender(trigger){
+  if(!LD.qqq) return;
+  const spot=LD.qqq, vixVal=LD.vix||19.5;
+  const dte=1; // recommend 1DTE by default; 0DTE/2DTE rejected by scoring otherwise
+
+  // Next trading day expiration (1 DTE)
+  const expDate=getNextTradingDays(2)[0];
+  const expIso=expDate.toISOString().split('T')[0];
+  const expLabel=expDate.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+
+  // Regime
+  const vixCls=getVL(), trendCls=getTR(), pmCls=getPM();
+  const isRed=vixCls==='extreme'||trendCls==='down'||pmCls==='down2'||OV.news==='major';
+  const isAmber=!isRed&&(vixCls==='high'||trendCls==='flat'||pmCls==='down1'||OV.news==='minor');
+
+  // Expected move 1-sigma for DTE
+  const expMove=spot*(vixVal/100)*Math.sqrt(dte/252);
+
+  // Volume context
+  let volMult=null, volLabel='—', volClass='', volSub='no volume data';
+  if(LD.volume&&LD.volAvg20){
+    volMult=LD.volume/LD.volAvg20;
+    volLabel=(LD.volume/1e6).toFixed(1)+'M';
+    volSub=(volMult).toFixed(2)+'× 20d avg';
+    volClass=volMult>1.5?'red':volMult>1.2?'amber':volMult<0.7?'amber':'green';
+  }
+
+  // Headline metrics
+  document.getElementById('np-qqq').textContent='$'+spot.toFixed(2);
+  document.getElementById('np-qqq-sub').textContent=(LD.chg>=0?'+':'')+LD.chg.toFixed(2)+'%';
+  document.getElementById('np-qqq-sub').style.color=LD.chg>=0?'var(--gt)':'var(--rt)';
+  const vixEl=document.getElementById('np-vix');
+  vixEl.textContent=vixVal.toFixed(1);
+  vixEl.className='mv '+(vixVal<15?'green':vixVal<20?'amber':'red');
+  document.getElementById('np-vix-sub').textContent=vixVal<15?'low':vixVal<20?'normal':vixVal<25?'elevated':'extreme';
+  const volEl=document.getElementById('np-vol');
+  volEl.textContent=volLabel;
+  volEl.className='mv '+volClass;
+  document.getElementById('np-vol-sub').textContent=volSub;
+
+  // Regime card
+  const regEl=document.getElementById('np-regime-card');
+  const lblEl=document.getElementById('np-regime-lbl');
+  const titleEl=document.getElementById('np-regime-title');
+  const descEl=document.getElementById('np-regime-desc');
+  const newsSignal=npNewsSignal();
+  let sizeRecCt='—';
+  if(isRed){
+    regEl.className='sig sig-r';
+    lblEl.textContent='✗ RED LIGHT';
+    titleEl.textContent='Skip Today or Trade Minimum Size';
+    descEl.textContent='High-risk regime active. '+(newsSignal.recentHigh?'HIGH-impact news in the last hour adds event risk.':'Elevated VIX or bearish trend.');
+    sizeRecCt='0–3';
+  }else if(isAmber){
+    regEl.className='sig sig-a';
+    lblEl.textContent='⚠ YELLOW LIGHT';
+    titleEl.textContent='Trade Conservatively — Reduce Size';
+    descEl.textContent='Elevated conditions. Widen OTM buffer, cut size 30–50%. Exit at 15% of premium.';
+    sizeRecCt='8–10';
+  }else{
+    regEl.className='sig sig-g';
+    lblEl.textContent='✓ GREEN LIGHT';
+    titleEl.textContent='Favorable — Standard Sizing';
+    descEl.textContent='Ideal regime. Your 91% win rate band ($0.20–$0.80 premium) applies.';
+    sizeRecCt='13–15';
+  }
+
+  // Regime meta
+  const histWR=QQQ_HIST.length?((QQQ_HIST.filter(t=>t.isWin).length/QQQ_HIST.length)*100).toFixed(1):'—';
+  const meta=document.getElementById('np-regime-meta');
+  meta.innerHTML=`<span>Size guide: <strong>${sizeRecCt} contracts</strong></span>
+    <span>Expected move ±$${expMove.toFixed(2)}</span>
+    <span>Overall hist WR: ${histWR}%</span>
+    <span id="np-asof">Last updated: ${new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',second:'2-digit'})}</span>`;
+
+  // Build strike candidates: wider range for Red, tighter for Green
+  const otmMin=isRed?expMove*0.9:isAmber?expMove*0.8:expMove*0.7;
+  const otmMax=isRed?expMove*2.0:isAmber?expMove*1.6:expMove*1.4;
+  const candidates=[];
+  for(let strike=Math.floor(spot-otmMax);strike<=Math.ceil(spot-otmMin);strike++){
+    candidates.push(npScoreStrike(strike,spot,vixVal,dte,expMove));
+  }
+  candidates.sort((a,b)=>b.score-a.score);
+  const top3=candidates.slice(0,3);
+
+  // Historical WR for the top pick's premium band
+  let topHistNote='';
+  if(top3[0]){
+    const hist=histWRForPrem(top3[0].prem);
+    if(hist) topHistNote=`${hist.winRate.toFixed(0)}% (${hist.wins}/${hist.n})`;
+    else topHistNote='insufficient history';
+  }
+  document.getElementById('np-hist-wr').textContent=topHistNote.split(' ')[0];
+  document.getElementById('np-hist-sub').textContent=top3[0]?`$${top3[0].prem.toFixed(2)} band · ${topHistNote.split(' ').slice(1).join(' ')||'—'}`:'—';
+
+  // Candidate cards
+  document.getElementById('np-cand-dte').textContent='· '+expLabel+' exp · '+dte+'DTE';
+  const candWrap=document.getElementById('np-candidates');
+  if(!top3.length){
+    candWrap.innerHTML='<div style="padding:20px;text-align:center;color:var(--text3);font-size:12px">No candidates found for current conditions.</div>';
+  }else{
+    candWrap.innerHTML=top3.map((c,i)=>{
+      const scoreCol=c.score>=70?'var(--gt)':c.score>=50?'var(--at)':'var(--rt)';
+      const rankBadge=i===0?'★ TOP PICK':'#'+(i+1);
+      const rankCol=i===0?'var(--gt)':'var(--text3)';
+      const histBar=c.histN>=5?`${c.histScore}% (${c.histN} similar)`:'insufficient data';
+      return `<div class="card" style="padding:12px 14px;border-left:3px solid ${scoreCol}">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div><span style="font-size:10px;font-weight:800;color:${rankCol};letter-spacing:.08em">${rankBadge}</span>
+            <span style="font-size:18px;font-weight:800;color:var(--bt);margin-left:8px">Sell $${c.strike} Put</span></div>
+          <div style="text-align:right"><div style="font-size:10px;color:var(--text3);font-weight:700">SCORE</div>
+            <div style="font-size:18px;font-weight:800;color:${scoreCol}">${c.score}</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:11px;margin-bottom:8px">
+          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.06em">Premium</div><div style="font-weight:800;color:var(--gt)">$${c.prem.toFixed(2)}</div></div>
+          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.06em">Delta</div><div style="font-weight:700">${c.delta.toFixed(3)}</div></div>
+          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.06em">OTM</div><div style="font-weight:700">${c.distPts}pts · ${c.otmPct}%</div></div>
+          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.06em">Est. credit</div><div style="font-weight:700">$${Math.round(c.prem*100*(isRed?3:isAmber?9:14))}</div></div>
+        </div>
+        <div style="font-size:10px;color:var(--text3);line-height:1.5">
+          Premium fit: <span style="color:var(--text2);font-weight:700">${c.premScore}</span> · OTM fit: <span style="color:var(--text2);font-weight:700">${c.otmScore}</span> · Delta fit: <span style="color:var(--text2);font-weight:700">${c.deltaScore}</span> · Hist WR: <span style="color:var(--text2);font-weight:700">${histBar}</span>
+        </div>
+        <button onclick="npApplyToOrder(${c.strike},${c.prem},'${expIso}')" style="margin-top:10px;width:100%;background:var(--green);color:#000;border:none;border-radius:6px;padding:8px;font-size:12px;font-weight:800;cursor:pointer">Apply to Order ticket →</button>
+      </div>`;
+    }).join('');
+  }
+
+  // News watch
+  const nl=document.getElementById('np-news-list');
+  const nc=document.getElementById('np-news-count');
+  const newsTop=(newsCache.today||[]).slice(0,6);
+  if(!newsTop.length){
+    nl.innerHTML='<div style="color:var(--text3);padding:10px 0;text-align:center">No news loaded yet</div>';
+    nc.textContent='0 items';
+  }else{
+    nl.innerHTML=newsTop.map(i=>{
+      const col=i.impact==='HIGH'?'var(--rt)':i.impact==='MEDIUM'?'var(--at)':'var(--gt)';
+      const bg=i.impact==='HIGH'?'var(--rbg)':i.impact==='MEDIUM'?'var(--abg)':'var(--gbg)';
+      const url=i.url||('https://news.google.com/search?q='+encodeURIComponent(i.headline));
+      return `<div style="padding:8px 0;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:center">
+        <span style="display:inline-block;font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px;background:${bg};color:${col};flex-shrink:0">${i.impact}</span>
+        <a href="${url}" target="_blank" rel="noopener noreferrer" style="color:var(--text2);text-decoration:none;font-size:12px;flex:1;line-height:1.4">${i.headline}</a>
+        <span style="font-size:10px;color:var(--text3);flex-shrink:0">${i.time||''}</span>
+      </div>`;
+    }).join('');
+    nc.textContent=newsTop.length+' items';
+  }
+
+  // Log entry
+  const nowTs=Date.now();
+  const entry={
+    ts:nowTs,
+    date:new Date(nowTs).toISOString(),
+    qqq:+spot.toFixed(2),
+    vix:+vixVal.toFixed(1),
+    volMult:volMult?+volMult.toFixed(2):null,
+    regime:isRed?'Red':isAmber?'Yellow':'Green',
+    topStrike:top3[0]?.strike||null,
+    topPrem:top3[0]?.prem||null,
+    topScore:top3[0]?.score||null,
+    trigger:trigger||'—'
+  };
+  // Only log if meaningful change or ≥5 min since last
+  const last=npLog[0];
+  const minutesSinceLast=last?(nowTs-last.ts)/60000:999;
+  const isSignificant=!last||minutesSinceLast>=5||last.regime!==entry.regime||last.topStrike!==entry.topStrike||Math.abs((last.qqq||0)-entry.qqq)>=0.5;
+  if(isSignificant){
+    npLog.unshift(entry);
+    if(npLog.length>100) npLog=npLog.slice(0,100);
+    localStorage.setItem('qqq-reco-log-v1',JSON.stringify(npLog));
+  }
+  npRenderLog();
+
+  // Banner: what changed?
+  const newsHash=(newsCache.today||[]).slice(0,10).map(i=>i.headline).join('|');
+  const cur={qqq:spot,vix:vixVal,newsSignal,newsHash};
+  const changeReason=npDetectChange(cur);
+  const banner=document.getElementById('np-banner');
+  const bbody=document.getElementById('np-banner-body');
+  if(changeReason&&trigger!=='initial'){
+    banner.style.display='block';
+    bbody.innerHTML=`<strong>Trigger:</strong> ${trigger||'auto'}. <strong>Change:</strong> ${changeReason}.`;
+    setTimeout(()=>{banner.style.display='none';},15000);
+  }
+  npLastSnapshot=cur;
+}
+
+function npRenderLog(){
+  const tb=document.getElementById('np-log-tbody');
+  const cnt=document.getElementById('np-log-count');
+  if(!tb) return;
+  if(!npLog.length){
+    tb.innerHTML='<tr><td colspan="8" style="padding:16px;text-align:center;color:var(--text3)">No entries yet</td></tr>';
+    cnt.textContent='0 entries';
+    return;
+  }
+  cnt.textContent=npLog.length+' entries';
+  tb.innerHTML=npLog.slice(0,30).map(e=>{
+    const d=new Date(e.ts);
+    const tmStr=d.toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+    const regCol=e.regime==='Red'?'var(--rt)':e.regime==='Yellow'?'var(--at)':'var(--gt)';
+    return `<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:7px 9px;color:var(--text2)">${tmStr}</td>
+      <td style="padding:7px 9px;text-align:right;font-weight:700">$${(e.qqq||0).toFixed(2)}</td>
+      <td style="padding:7px 9px;text-align:right">${(e.vix||0).toFixed(1)}</td>
+      <td style="padding:7px 9px;color:${regCol};font-weight:800">${e.regime}</td>
+      <td style="padding:7px 9px;text-align:right;color:var(--bt);font-weight:800">${e.topStrike?'$'+e.topStrike:'—'}</td>
+      <td style="padding:7px 9px;text-align:right;color:var(--gt);font-weight:700">${e.topPrem?'$'+e.topPrem.toFixed(2):'—'}</td>
+      <td style="padding:7px 9px;text-align:right;font-weight:700">${e.topScore||'—'}</td>
+      <td style="padding:7px 9px;color:var(--text3);font-size:10px">${e.trigger||''}</td>
+    </tr>`;
+  }).join('');
+}
+
+function npClearLog(){
+  if(!confirm('Clear the recommendation log? This cannot be undone.')) return;
+  npLog=[];
+  localStorage.removeItem('qqq-reco-log-v1');
+  npRenderLog();
+}
+
+// Apply a candidate to the Order tab so the user can review and place it
+function npApplyToOrder(strike,prem,expIso){
+  const exSel=document.getElementById('ot-exp');
+  if(exSel){
+    for(let i=0;i<exSel.options.length;i++){
+      if(exSel.options[i].value===expIso){exSel.selectedIndex=i;break;}
+    }
+  }
+  const strikeInp=document.getElementById('ot-strike');
+  if(strikeInp){strikeInp.value=strike;}
+  const typeSel=document.getElementById('ot-type');
+  if(typeSel){typeSel.value='put';}
+  const actionSel=document.getElementById('ot-action');
+  if(actionSel){actionSel.value='sell_open';}
+  if(typeof onTick==='function') onTick();
+  const orderTab=document.querySelector('.tb[onclick*="\'order\'"]');
+  if(orderTab) showTab('order',orderTab);
+  if(typeof showToast==='function') showToast('Applied $'+strike+' put to Order ticket');
+}
+
+// Polling: while tab is open, re-fetch news + check for quote changes
+async function npPollCheck(){
+  const active=document.getElementById('panel-nakedput')?.classList.contains('active');
+  if(!active) return;
+  // Fast: just re-score with whatever's in LD (quote refreshes on its own 5-min cycle)
+  // Every 2 ticks (2 min), also poke news
+  npPollCheck.tick=(npPollCheck.tick||0)+1;
+  if(npPollCheck.tick%2===0){
+    await fetchNews('today').catch(()=>{});
+  }
+  // Capture new headlines that weren't there before
+  const items=newsCache.today||[];
+  let newHigh=false;
+  items.forEach(i=>{
+    const key=i.headline;
+    if(!npNewsSeen.has(key)){
+      npNewsSeen.add(key);
+      if(i.impact==='HIGH'&&(Date.now()-(i.pubDate||0))<1800000) newHigh=true;
+    }
+  });
+  // Detect material quote move since last render
+  const spot=LD.qqq||0, vix=LD.vix||0;
+  const prev=npLastSnapshot;
+  let quoteMove=false;
+  if(prev&&spot){
+    const pctMove=Math.abs(spot-prev.qqq)/prev.qqq*100;
+    if(pctMove>=0.5||Math.abs(vix-prev.vix)>=1) quoteMove=true;
+  }
+  let trigger=null;
+  if(newHigh) trigger='HIGH-impact news';
+  else if(quoteMove) trigger='price/VIX move';
+  else if(npPollCheck.tick%5===0) trigger='periodic refresh'; // every 5 min
+  if(trigger) npRender(trigger);
+}
+
+function npOnTabOpen(){
+  // Seed "seen" news so we don't fire an immediate banner for existing items
+  (newsCache.today||[]).forEach(i=>npNewsSeen.add(i.headline));
+  // Ensure we have QQQ history
+  if(!QQQ_HIST.length) loadHistData().then(()=>npRender('initial'));
+  else npRender('initial');
+  // Start polling every 60s
+  if(!npPollTimer) npPollTimer=setInterval(npPollCheck,60000);
+}
+
+function npOnTabClose(){
+  if(npPollTimer){clearInterval(npPollTimer); npPollTimer=null;}
+}
+
+// ══════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════
 window.addEventListener('load',()=>{
@@ -3413,6 +3898,12 @@ window.addEventListener('load',()=>{
   // Refresh news every 15 min
   setInterval(()=>fetchNews('today'),900000);
   setInterval(()=>fetchNews('tomorrow'),900000);
+  // Preload QQQ naked-put trade history (powers the Naked Put tab)
+  loadHistData();
+  // PWA service worker registration (safe if sw.js isn't served, e.g. file://)
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  }
 });
 </script>
 </body>
