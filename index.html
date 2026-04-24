@@ -302,7 +302,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 
 <!-- TABS -->
 <div id="tabs">
-  <button class="tb active" onclick="showTab('signal',this)">Signal</button>
   <button class="tb" onclick="showTab('order',this)">Order</button>
   <button class="tb" onclick="showTab('spreads',this)">Spreads</button>
   <button class="tb" onclick="showTab('record',this)">Paper Trade</button>
@@ -311,13 +310,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <button class="tb" onclick="showTab('entry',this)">Entry Rules</button>
   <button class="tb" onclick="showTab('exit',this)">Exit &amp; Roll</button>
   <button class="tb" onclick="showTab('stats',this)">Stats</button>
-  <button class="tb" onclick="showTab('nakedput',this)">QQQ Naked Put</button>
+  <button class="tb active" onclick="showTab('nakedput',this)">QQQ Naked Put</button>
 </div>
 
 <div id="content">
 
 <!-- ══ SIGNAL TAB ══ -->
-<div id="panel-signal" class="panel active">
+<div id="panel-signal" class="panel">
 
   <!-- Main signal -->
   <div id="sig-card" class="sig sig-g">
@@ -396,31 +395,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     </div>
   </div>
 
-  <!-- TODAY'S NEWS — standalone prominent card -->
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;margin-top:4px">
-    <div>
-      <p class="stitle" style="margin:0">Today's News <span style="font-size:9px;text-transform:none;letter-spacing:0;font-weight:400;color:var(--text3)">· <span id="news-today-count">loading...</span></span></p>
-    </div>
-    <button onclick="fetchNews('today')" style="background:var(--gbg);border:1px solid rgba(34,201,138,.3);border-radius:var(--rs);padding:5px 11px;font-size:10px;font-weight:800;color:var(--gt);cursor:pointer">↻ Refresh</button>
-  </div>
-  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:12px">
-    <div id="news-today-table" style="width:100%">
-      <div style="padding:20px;text-align:center;color:var(--text3);font-size:13px"><span class="spin"></span> Scanning today's market news...</div>
-    </div>
-  </div>
-
-  <!-- TOMORROW'S NEWS — standalone prominent card -->
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-    <div>
-      <p class="stitle" style="margin:0">Tomorrow's News <span style="font-size:9px;text-transform:none;letter-spacing:0;font-weight:400;color:var(--text3)">· <span id="news-tomorrow-count">loading...</span></span></p>
-    </div>
-    <button onclick="fetchNews('tomorrow')" style="background:var(--bbg);border:1px solid rgba(79,163,247,.3);border-radius:var(--rs);padding:5px 11px;font-size:10px;font-weight:800;color:var(--bt);cursor:pointer">↻ Refresh</button>
-  </div>
-  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:12px">
-    <div id="news-tomorrow-table" style="width:100%">
-      <div style="padding:20px;text-align:center;color:var(--text3);font-size:13px"><span class="spin"></span> Scanning upcoming events...</div>
-    </div>
-  </div>
+  <!-- News moved to the QQQ Naked Put tab. Signal panel retained (hidden)
+       so updateSig / renderSigPositions / market-data overrides still work. -->
 
   <p class="stitle">Historical context</p>
   <div class="card">
@@ -936,7 +912,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 </div>
 
 <!-- ══ QQQ NAKED PUT TAB — DAILY RECOMMENDATION ══ -->
-<div id="panel-nakedput" class="panel">
+<div id="panel-nakedput" class="panel active">
 
   <!-- Live banner: what changed since last render -->
   <div id="np-banner" class="card" style="display:none;padding:10px 12px;border-left:3px solid var(--bt);background:var(--bbg);margin-bottom:10px">
@@ -964,10 +940,30 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <p class="stitle">Top Candidates <span id="np-cand-dte" style="text-transform:none;letter-spacing:0;font-weight:400;font-size:9px;color:var(--text3)"></span></p>
   <div id="np-candidates" style="display:grid;gap:10px;margin-bottom:14px"></div>
 
-  <!-- News watch -->
-  <p class="stitle">News Watch <span id="np-news-count" style="text-transform:none;letter-spacing:0;font-weight:400;font-size:9px;color:var(--text3)"></span></p>
-  <div id="np-news-list" class="card" style="padding:4px 12px;margin-bottom:14px;font-size:12px">
-    <div style="color:var(--text3);padding:10px 0;text-align:center">Scanning...</div>
+  <!-- Today's News — rich table, shared with legacy Signal fetcher -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;margin-top:4px">
+    <div>
+      <p class="stitle" style="margin:0">Today's News <span style="font-size:9px;text-transform:none;letter-spacing:0;font-weight:400;color:var(--text3)">· <span id="news-today-count">loading...</span></span></p>
+    </div>
+    <button onclick="fetchNews('today')" style="background:var(--gbg);border:1px solid rgba(34,201,138,.3);border-radius:var(--rs);padding:5px 11px;font-size:10px;font-weight:800;color:var(--gt);cursor:pointer">↻ Refresh</button>
+  </div>
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:12px">
+    <div id="news-today-table" style="width:100%">
+      <div style="padding:20px;text-align:center;color:var(--text3);font-size:13px"><span class="spin"></span> Scanning today's market news...</div>
+    </div>
+  </div>
+
+  <!-- Tomorrow's News — rich table with scheduled events -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+    <div>
+      <p class="stitle" style="margin:0">Tomorrow's News <span style="font-size:9px;text-transform:none;letter-spacing:0;font-weight:400;color:var(--text3)">· <span id="news-tomorrow-count">loading...</span></span></p>
+    </div>
+    <button onclick="fetchNews('tomorrow')" style="background:var(--bbg);border:1px solid rgba(79,163,247,.3);border-radius:var(--rs);padding:5px 11px;font-size:10px;font-weight:800;color:var(--bt);cursor:pointer">↻ Refresh</button>
+  </div>
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:14px">
+    <div id="news-tomorrow-table" style="width:100%">
+      <div style="padding:20px;text-align:center;color:var(--text3);font-size:13px"><span class="spin"></span> Scanning upcoming events...</div>
+    </div>
   </div>
 
   <!-- Recommendation log -->
@@ -3723,26 +3719,9 @@ function npRender(trigger){
     }).join('');
   }
 
-  // News watch
-  const nl=document.getElementById('np-news-list');
-  const nc=document.getElementById('np-news-count');
-  const newsTop=(newsCache.today||[]).slice(0,6);
-  if(!newsTop.length){
-    nl.innerHTML='<div style="color:var(--text3);padding:10px 0;text-align:center">No news loaded yet</div>';
-    nc.textContent='0 items';
-  }else{
-    nl.innerHTML=newsTop.map(i=>{
-      const col=i.impact==='HIGH'?'var(--rt)':i.impact==='MEDIUM'?'var(--at)':'var(--gt)';
-      const bg=i.impact==='HIGH'?'var(--rbg)':i.impact==='MEDIUM'?'var(--abg)':'var(--gbg)';
-      const url=i.url||('https://news.google.com/search?q='+encodeURIComponent(i.headline));
-      return `<div style="padding:8px 0;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:center">
-        <span style="display:inline-block;font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px;background:${bg};color:${col};flex-shrink:0">${i.impact}</span>
-        <a href="${url}" target="_blank" rel="noopener noreferrer" style="color:var(--text2);text-decoration:none;font-size:12px;flex:1;line-height:1.4">${i.headline}</a>
-        <span style="font-size:10px;color:var(--text3);flex-shrink:0">${i.time||''}</span>
-      </div>`;
-    }).join('');
-    nc.textContent=newsTop.length+' items';
-  }
+  // News tables (Today / Tomorrow) are rendered by fetchNews → renderNewsTable
+  // into the shared news-today-table / news-tomorrow-table DOM nodes in this
+  // panel. No additional rendering needed here.
 
   // Log entry
   const nowTs=Date.now();
@@ -3920,9 +3899,16 @@ window.addEventListener('load',()=>{
   const now=new Date();
   document.getElementById('gl-from').value=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-01';
   document.getElementById('gl-to').value=now.toISOString().split('T')[0];
-  // Restore last active tab
-  const lastTab=localStorage.getItem('qqq-last-tab');
-  if(lastTab){const btn=document.querySelector(`.tb[onclick*="'${lastTab}'"]`);if(btn)showTab(lastTab,btn);}
+  // Restore last active tab — 'signal' has been retired, map it to 'nakedput'
+  let lastTab=localStorage.getItem('qqq-last-tab')||'nakedput';
+  if(lastTab==='signal') lastTab='nakedput';
+  const restoreBtn=document.querySelector(`.tb[onclick*="'${lastTab}'"]`);
+  if(restoreBtn) showTab(lastTab,restoreBtn);
+  else {
+    // Fallback: fire the default tab's init hook so polling starts
+    const defaultBtn=document.querySelector('.tb[onclick*="\'nakedput\'"]');
+    if(defaultBtn) showTab('nakedput',defaultBtn);
+  }
   updateMktStatus();setInterval(updateMktStatus,1000);
   fetchLD();setInterval(fetchLD,300000);
   startCountdown();
