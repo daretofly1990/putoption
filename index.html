@@ -3582,7 +3582,14 @@ function npDetectChange(cur){
 
 // Main render — called on tab open, quote refresh, news arrival, price move
 function npRender(trigger){
-  if(!LD.qqq) return;
+  if(!LD.qqq){
+    // Haven't received a quote yet — show "waiting" state so the tab isn't stuck
+    const titleEl=document.getElementById('np-regime-title');
+    const descEl=document.getElementById('np-regime-desc');
+    if(titleEl) titleEl.textContent='Waiting for QQQ quote…';
+    if(descEl) descEl.textContent='If this persists, tap Refresh. On iOS PWA, force-close and relaunch — a fresh service worker may need to activate.';
+    return;
+  }
   const spot=LD.qqq, vixVal=LD.vix||19.5;
   const dte=1; // recommend 1DTE by default; 0DTE/2DTE rejected by scoring otherwise
 
@@ -3863,9 +3870,31 @@ async function npPollCheck(){
 function npOnTabOpen(){
   // Seed "seen" news so we don't fire an immediate banner for existing items
   (newsCache.today||[]).forEach(i=>npNewsSeen.add(i.headline));
-  // Ensure we have QQQ history
-  if(!QQQ_HIST.length) loadHistData().then(()=>npRender('initial'));
-  else npRender('initial');
+  // Render immediately with whatever we have — don't block on hist load.
+  // If LD.qqq isn't populated yet (fetch still in flight), npRender early-
+  // returns and we'll re-render once fetchLD → applyLD completes or when
+  // the user clicks Refresh. Never leave the tab stuck on "Loading..."
+  // because a dependency (qqq-hist.json, etc) is slow.
+  npRender('initial');
+  // Kick off history load in background; re-render if it arrives with data
+  if(!QQQ_HIST.length){
+    loadHistData().then(()=>{
+      if(QQQ_HIST.length&&document.getElementById('panel-nakedput')?.classList.contains('active')){
+        npRender('history loaded');
+      }
+    }).catch(()=>{});
+  }
+  // If LD.qqq isn't ready yet, poll briefly so we render the moment it arrives
+  if(!LD.qqq){
+    const waitTimer=setInterval(()=>{
+      if(LD.qqq||!document.getElementById('panel-nakedput')?.classList.contains('active')){
+        clearInterval(waitTimer);
+        if(LD.qqq) npRender('quote arrived');
+      }
+    },500);
+    // Give up after 30s
+    setTimeout(()=>clearInterval(waitTimer),30000);
+  }
   // Start polling every 60s
   if(!npPollTimer) npPollTimer=setInterval(npPollCheck,60000);
 }
