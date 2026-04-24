@@ -3710,10 +3710,10 @@ function npRender(trigger){
             <div style="font-size:18px;font-weight:800;color:${scoreCol}">${c.score}</div>
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font-size:11px;margin-bottom:10px">
-          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.06em">Delta</div><div style="font-weight:700">${c.delta.toFixed(3)}</div></div>
-          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.06em">OTM</div><div style="font-weight:700">${c.distPts}pts · ${c.otmPct}%</div></div>
-          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.06em">Est. credit</div><div style="font-weight:700">$${Math.round(c.prem*100*(isRed?3:isAmber?9:14))}</div></div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px">
+          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.06em">Delta</div><div style="font-size:13px;font-weight:800;color:var(--text)">${c.delta.toFixed(3)}</div></div>
+          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.06em">OTM</div><div style="font-size:13px;font-weight:800;color:var(--text)">${c.distPts}pts · ${c.otmPct}%</div></div>
+          <div><div style="color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.06em">Est. credit</div><div style="font-size:13px;font-weight:800;color:var(--text)">$${Math.round(c.prem*100*(isRed?3:isAmber?9:14))}</div></div>
         </div>
         <div style="font-size:13px;color:var(--text2);font-weight:700;line-height:1.55">
           Premium fit: <span style="color:var(--text);font-weight:800">${c.premScore}</span> · OTM fit: <span style="color:var(--text);font-weight:800">${c.otmScore}</span> · Delta fit: <span style="color:var(--text);font-weight:800">${c.deltaScore}</span> · Hist WR: <span style="color:var(--text);font-weight:800">${histBar}</span>
