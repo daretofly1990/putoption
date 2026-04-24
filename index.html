@@ -1631,68 +1631,129 @@ function catShort(cat){
   return 'Market';
 }
 
+// Shared keyword classifier → {category, impact}. Used by both Finnhub and
+// RSS paths so impact scoring stays consistent across sources.
+function classifyNewsItem(title,summary){
+  const txt=((title||'')+' '+(summary||'')).toLowerCase();
+  if(txt.includes('fed')||txt.includes('fomc')||txt.includes('yield')||txt.includes('treasury')||txt.includes('interest rate')) return {category:'Rates/Bonds',impact:'HIGH'};
+  if(txt.includes('cpi')||txt.includes('inflation')||txt.includes('gdp')||txt.includes('jobs')||txt.includes('nonfarm')||txt.includes('unemployment')||txt.includes('pmi')) return {category:'Economic Data',impact:'HIGH'};
+  if(txt.includes('nvidia')||txt.includes('nvda')||txt.includes('apple')||txt.includes('aapl')||txt.includes('microsoft')||txt.includes('msft')||txt.includes('amazon')||txt.includes('amzn')||txt.includes('meta')||txt.includes('google')||txt.includes('alphabet')||txt.includes('tesla')||txt.includes('tsla')||txt.includes('earnings')||txt.includes('guidance')||txt.includes('revenue')) return {category:'Earnings/QQQ',impact:'HIGH'};
+  if(txt.includes('tariff')||txt.includes('sanction')||txt.includes('ukraine')||txt.includes('china')||txt.includes('taiwan')||txt.includes('russia')||txt.includes('iran')||txt.includes('war')||txt.includes('geopolit')) return {category:'Geopolitical',impact:'HIGH'};
+  if(txt.includes('oil')||txt.includes('crude')||txt.includes('gold')||txt.includes('copper')||txt.includes('commodity')||txt.includes('natural gas')) return {category:'Commodities',impact:'MEDIUM'};
+  if(txt.includes('ai ')||txt.includes('artificial intel')||txt.includes('semiconductor')||txt.includes('chip')||txt.includes('quantum')) return {category:'Tech/AI',impact:'MEDIUM'};
+  if(txt.includes('vix')||txt.includes('sentiment')||txt.includes('put/call')) return {category:'Sentiment',impact:'LOW'};
+  if(txt.includes('congress')||txt.includes('senate')||txt.includes('fiscal')||txt.includes('budget')||txt.includes('spending')||txt.includes('debt ceiling')) return {category:'Fiscal Policy',impact:'HIGH'};
+  if(txt.includes('health')||txt.includes('virus')||txt.includes('outbreak')) return {category:'Public Health',impact:'MEDIUM'};
+  if(txt.includes('liquidity')||txt.includes('money supply')||txt.includes('repo')) return {category:'Liquidity',impact:'LOW'};
+  if(txt.includes('expir')||txt.includes('gamma')||txt.includes('volatility')) return {category:'Mkt Structure',impact:'MEDIUM'};
+  return {category:'Market',impact:'MEDIUM'};
+}
+
+function fmtNewsTime(dateObj){
+  return dateObj.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:'America/New_York'})+' ET';
+}
+
+// Primary source: Finnhub JSON API. Combines per-symbol QQQ news with the
+// general market feed to cover both company-level and macro items (Fed, CPI,
+// tariffs). Direct calls (no CORS proxy) so uptime is tied only to Finnhub.
+async function fetchNewsFinnhub(){
+  if(!FINNHUB_TOKEN||FINNHUB_TOKEN==='YOUR_FINNHUB_TOKEN') throw new Error('no Finnhub token');
+  const now=new Date();
+  const weekAgo=new Date(now.getTime()-7*86400000);
+  const fmtDate=d=>d.toISOString().split('T')[0];
+  const urls=[
+    `https://finnhub.io/api/v1/company-news?symbol=QQQ&from=${fmtDate(weekAgo)}&to=${fmtDate(now)}&token=${FINNHUB_TOKEN}`,
+    `https://finnhub.io/api/v1/news?category=general&token=${FINNHUB_TOKEN}`
+  ];
+  const results=await Promise.allSettled(urls.map(u=>
+    fetch(u,{signal:AbortSignal.timeout(6000),cache:'no-store'}).then(r=>r.ok?r.json():[])
+  ));
+  const raw=[];
+  results.forEach(r=>{if(r.status==='fulfilled'&&Array.isArray(r.value)) raw.push(...r.value);});
+  if(!raw.length) throw new Error('Finnhub returned no items');
+  const seen=new Set();
+  const items=[];
+  for(const n of raw){
+    if(!n.headline||n.headline.length<10||seen.has(n.headline)) continue;
+    seen.add(n.headline);
+    const dateObj=new Date((n.datetime||0)*1000);
+    const {category,impact}=classifyNewsItem(n.headline,n.summary);
+    items.push({
+      headline:n.headline,
+      category,time:fmtNewsTime(dateObj),impact,
+      pubDate:dateObj.getTime(),
+      url:n.url||''
+    });
+  }
+  // Keep the last 48h of items
+  const cutoff=Date.now()-48*3600*1000;
+  return items.filter(i=>i.pubDate>cutoff).sort((a,b)=>b.pubDate-a.pubDate).slice(0,12);
+}
+
+// Backup source: legacy RSS chain via AllOrigins proxy. Slower and less
+// reliable but survives Finnhub outages / rate-limit corner cases.
+async function fetchNewsRSS(){
+  const feeds=[
+    'https://feeds.finance.yahoo.com/rss/2.0/headline?s=QQQ&region=US&lang=en-US',
+    'https://feeds.marketwatch.com/marketwatch/topstories/',
+    'https://feeds.reuters.com/reuters/businessNews'
+  ];
+  for(const feed of feeds){
+    try{
+      const proxy=`https://api.allorigins.win/get?url=${encodeURIComponent(feed)}`;
+      const r=await fetch(proxy,{cache:'no-store'});
+      const json=await r.json();
+      const parser=new DOMParser();
+      const doc=parser.parseFromString(json.contents,'text/xml');
+      const rssItems=Array.from(doc.querySelectorAll('item')).slice(0,20);
+      if(!rssItems.length) continue;
+      const items=rssItems.map(item=>{
+        const title=item.querySelector('title')?.textContent||'';
+        const pubDate=item.querySelector('pubDate')?.textContent||'';
+        const linkEl=item.querySelector('link');
+        const link=(linkEl?.getAttribute('href')||linkEl?.textContent?.trim()||item.querySelector('guid')?.textContent?.trim()||'').replace(/^<!\[CDATA\[|\]\]>$/g,'');
+        const desc=(item.querySelector('description')?.textContent||'').replace(/<[^>]*>/g,'');
+        const dateObj=pubDate?new Date(pubDate):new Date();
+        const {category,impact}=classifyNewsItem(title,desc);
+        return {headline:title,category,time:fmtNewsTime(dateObj),impact,pubDate:dateObj.getTime(),url:link};
+      }).filter(i=>i.headline&&i.headline.length>10).sort((a,b)=>b.pubDate-a.pubDate).slice(0,10);
+      if(items.length) return items;
+    }catch{/* try next feed */}
+  }
+  throw new Error('all RSS feeds failed');
+}
+
 async function fetchNews(which){
   const tableEl=document.getElementById('news-'+which+'-table');
   const countEl=document.getElementById('news-'+which+'-count');
   if(tableEl) tableEl.innerHTML='<div style="padding:20px;text-align:center;color:var(--text3);font-size:13px"><span class="spin"></span> Scanning '+(which==='today'?'today\'s':'tomorrow\'s')+' market news...</div>';
   if(countEl) countEl.textContent='loading...';
+  let items=[], source='';
   try{
-    const feeds=[
-      'https://feeds.finance.yahoo.com/rss/2.0/headline?s=QQQ&region=US&lang=en-US',
-      'https://feeds.marketwatch.com/marketwatch/topstories/',
-      'https://feeds.reuters.com/reuters/businessNews',
-    ];
-    let items=[];
-    for(const feed of feeds){
-      try{
-        const proxy=`https://api.allorigins.win/get?url=${encodeURIComponent(feed)}`;
-        const r=await fetch(proxy,{cache:'no-store'});
-        const json=await r.json();
-        const parser=new DOMParser();
-        const doc=parser.parseFromString(json.contents,'text/xml');
-        const rssItems=Array.from(doc.querySelectorAll('item')).slice(0,20);
-        if(rssItems.length>0){
-          items=rssItems.map(item=>{
-            const title=item.querySelector('title')?.textContent||'';
-            const pubDate=item.querySelector('pubDate')?.textContent||'';
-            const linkEl=item.querySelector('link');
-            const link=(linkEl?.getAttribute('href')||linkEl?.textContent?.trim()||item.querySelector('guid')?.textContent?.trim()||'').replace(/^<!\[CDATA\[|\]\]>$/g,'');
-            const desc=(item.querySelector('description')?.textContent||'').replace(/<[^>]*>/g,'');
-            const dateObj=pubDate?new Date(pubDate):new Date();
-            const timeStr=dateObj.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:'America/New_York'})+' ET';
-            const txt=(title+' '+desc).toLowerCase();
-            let category='Market',impact='MEDIUM';
-            if(txt.includes('fed')||txt.includes('fomc')||txt.includes('yield')||txt.includes('treasury')||txt.includes('interest rate')){category='Rates/Bonds';impact='HIGH';}
-            else if(txt.includes('cpi')||txt.includes('inflation')||txt.includes('gdp')||txt.includes('jobs')||txt.includes('nonfarm')||txt.includes('unemployment')||txt.includes('pmi')){category='Economic Data';impact='HIGH';}
-            else if(txt.includes('nvidia')||txt.includes('nvda')||txt.includes('apple')||txt.includes('aapl')||txt.includes('microsoft')||txt.includes('msft')||txt.includes('amazon')||txt.includes('amzn')||txt.includes('meta')||txt.includes('google')||txt.includes('alphabet')||txt.includes('tesla')||txt.includes('tsla')||txt.includes('earnings')||txt.includes('guidance')||txt.includes('revenue')){category='Earnings/QQQ';impact='HIGH';}
-            else if(txt.includes('tariff')||txt.includes('sanction')||txt.includes('ukraine')||txt.includes('china')||txt.includes('taiwan')||txt.includes('russia')||txt.includes('iran')||txt.includes('war')||txt.includes('geopolit')){category='Geopolitical';impact='HIGH';}
-            else if(txt.includes('oil')||txt.includes('crude')||txt.includes('gold')||txt.includes('copper')||txt.includes('commodity')||txt.includes('natural gas')){category='Commodities';impact='MEDIUM';}
-            else if(txt.includes('ai ')||txt.includes('artificial intel')||txt.includes('semiconductor')||txt.includes('chip')||txt.includes('quantum')){category='Tech/AI';impact='MEDIUM';}
-            else if(txt.includes('vix')||txt.includes('sentiment')||txt.includes('put/call')){category='Sentiment';impact='LOW';}
-            else if(txt.includes('congress')||txt.includes('senate')||txt.includes('fiscal')||txt.includes('budget')||txt.includes('spending')||txt.includes('debt ceiling')){category='Fiscal Policy';impact='HIGH';}
-            else if(txt.includes('health')||txt.includes('virus')||txt.includes('outbreak')){category='Public Health';impact='MEDIUM';}
-            else if(txt.includes('liquidity')||txt.includes('money supply')||txt.includes('repo')){category='Liquidity';impact='LOW';}
-            else if(txt.includes('expir')||txt.includes('gamma')||txt.includes('volatility')){category='Mkt Structure';impact='MEDIUM';}
-            return {headline:title,category,time:timeStr,impact,pubDate:dateObj.getTime(),url:link};
-          })
-          .filter(item=>item.headline&&item.headline.length>10)
-          .sort((a,b)=>b.pubDate-a.pubDate)
-          .slice(0,10);
-          break;
-        }
-      }catch(feedErr){continue;}
+    items=await fetchNewsFinnhub();
+    source='Finnhub';
+  }catch(e1){
+    console.warn('Finnhub news failed, falling back to RSS:',e1.message);
+    try{
+      items=await fetchNewsRSS();
+      source='RSS';
+    }catch(e2){
+      console.error('Both news sources failed:',e2.message);
     }
-    if(which==='tomorrow'){
-      const sched=getScheduledEvents(new Date(Date.now()+86400000));
-      items=[...sched,...items].slice(0,10);
-    }
-    if(items.length>0){newsCache[which]=items;renderNewsTable(tableEl,countEl,items);}
-    else throw new Error('no items');
-  }catch(e){
-    console.error('fetchNews failed:',e);
+  }
+  if(which==='tomorrow'){
+    const sched=getScheduledEvents(new Date(Date.now()+86400000));
+    items=[...sched,...items].slice(0,10);
+  }
+  if(items.length){
+    newsCache[which]=items;
+    renderNewsTable(tableEl,countEl,items);
+    if(countEl&&source) countEl.textContent=items.length+' items · '+source;
+  }else{
     const fallback=getFallbackNews(which);
     newsCache[which]=fallback;
     renderNewsTable(tableEl,countEl,fallback);
+    if(countEl) countEl.textContent=fallback.length+' items · hardcoded fallback';
   }
 }
 

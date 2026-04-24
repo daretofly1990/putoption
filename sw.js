@@ -1,4 +1,4 @@
-const CACHE = 'qqq-v7';
+const CACHE = 'qqq-v8';
 const ASSETS = [
   '/putoption/index.html',
   '/putoption/manifest.json',
