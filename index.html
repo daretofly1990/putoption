@@ -3689,8 +3689,11 @@ function npRender(trigger){
       const histBar=c.histN>=5?`${c.histScore}% (${c.histN} similar)`:'insufficient data';
       return `<div class="card" style="padding:12px 14px;border-left:3px solid ${scoreCol}">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <div><span style="font-size:10px;font-weight:800;color:${rankCol};letter-spacing:.08em">${rankBadge}</span>
-            <span style="font-size:18px;font-weight:800;color:var(--bt);margin-left:8px">Sell $${c.strike} Put</span></div>
+          <div>
+            <span style="font-size:10px;font-weight:800;color:${rankCol};letter-spacing:.08em">${rankBadge}</span>
+            <span style="font-size:18px;font-weight:800;color:var(--bt);margin-left:8px">Sell $${c.strike} Put</span>
+            <div style="font-size:10px;color:var(--text3);margin-top:2px">Exp <span style="color:var(--text2);font-weight:700">${expLabel}</span> · <span style="color:var(--text2);font-weight:700">${dte}DTE</span></div>
+          </div>
           <div style="text-align:right"><div style="font-size:10px;color:var(--text3);font-weight:700">SCORE</div>
             <div style="font-size:18px;font-weight:800;color:${scoreCol}">${c.score}</div></div>
         </div>
